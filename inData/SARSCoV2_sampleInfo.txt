@@ -1,0 +1,7 @@
+"sample" "sampleNr" "timepoint" "virus"
+"TT1" "TT1" 1 "0h" "mock"
+"TT2" "TT2" 2 "0h" "mock"
+"TT3" "TT3" 3 "0h" "mock"
+"TT25" "TT25" 25 "24h" "infected"
+"TT26" "TT26" 26 "24h" "infected"
+"TT27" "TT27" 27 "24h" "infected"
