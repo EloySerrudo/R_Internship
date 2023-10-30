@@ -99,21 +99,35 @@ dataShue <- read_excel("jvi.00596-21-s0001.xls", sheet = "Genelist") # Shue
 colnames(dataLi) <- as.vector(dataLi[1,])
 colnames(dataWang1) <- as.vector(dataWang1[1,])
 colnames(dataWang2) <- as.vector(dataWang2[1,])
+dataShue <- dataShue[order(dataShue$deseq2.FC, decreasing = TRUE),]
 
 Hits.Savidis <- dataSavidis[-1,-2] # Ya está ordenado
 Hits.Li <- dataLi[-1,-(2:4)] # Está ordenado por defecto con zika.init.5th
 Hits.Wang1 <- dataWang1[-1,-(2:3)] # Ya está ordenado
-Hits.Wang2 <- dataWang2[-1,-(2:5)] # Ya está ordenado. El primer Gen tiene un nombre especial
+Hits.Wang2 <- dataWang2[-1,-(2:5)] # Ya está ordenado. El primer Gen MMGT1 (EMC5)
 Hits.Rother <- dataRother[,-(2:6)] # Utilizar la hoja Gene Ranking.Ya está ordenado por la columna Rank
-Hits.Shue <- dataShue[,-(2:7)] # Usar la columna deseq2.FC para ordenar los 500
+Hits.Shue <- dataShue[,-(2:7)] # La columna deseq2.FC ordena los 500
 
 rm(dataSavidis)
 rm(dataLi)
 rm(dataWang1)
 rm(dataWang2)
+rm(dataRother)
+rm(dataShue)
+
+Hits.Wang2[[1,1]] <- "MMGT1"
+Hits.Li <- Hits.Li[1:500,]
+Hits.Shue <- Hits.Shue[1:500,]
 
 sum(unlist(Hits_Wang) %in% unlist(Hits_Savidis))
 sum(unlist(Hits_Wang) %in% unlist(Hits_Rother))
 sum(unlist(Hits_Wang) %in% unlist(Hits_Dukhovny))
 
-colnames(Hits.Li)
+sum(unlist(Hits.Li) %in% unlist(Hits.Shue))
+
+genes <- unlist(Hits.Li)
+
+namesRother <- unlist(Hits.Rother[!(unlist(Hits.Rother) %in% genes),])
+
+
+genes2 <- c(genes, namesRother)
