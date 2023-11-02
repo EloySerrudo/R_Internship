@@ -1,6 +1,7 @@
 library(tidyverse)
 library(readxl)
 library(ComplexUpset)
+library(gprofiler2)
 
 # Dukhovny (2019) Los CSV no estan incluidos en la tabla ¿xq?
 #my_data <- read.table(file = '1-s2-0.txt', sep = ',', header = FALSE)
@@ -15,6 +16,7 @@ colnames(dataLi) <- as.vector(dataLi[1,])
 dataLi <- dataLi[-1,]
 cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
 dataLi[cols.num] <- sapply(dataLi[cols.num],as.numeric)
+dataLi <- dataLi[order(dataLi$p.bh),]
 
 dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", sheet = "Ranking", col_names = FALSE, skip = 1)
 dataWang293FT <- read_excel("NIHMS1553325-supplement-3.xlsx", sheet = "Sheet1", col_names = FALSE, skip = 2)
@@ -22,6 +24,7 @@ colnames(dataWangGSC) <- as.vector(dataWangGSC[1,])
 colnames(dataWang293FT) <- as.vector(dataWang293FT[1,])
 dataWangGSC <- dataWangGSC[-1,]
 dataWang293FT <- dataWang293FT[-1,]
+dataWang293FT[[1,1]] <- "MMGT1"
 
 dataRother <- read_excel("1-s2.0-S0168170221000459-mmc1.xlsx", sheet = "(B) Gene ranking")
 
@@ -29,43 +32,39 @@ dataShue <- read_excel("jvi.00596-21-s0001.xls", sheet = "Genelist")
 cols.num <- c("deseq2.FC", "deseq2.pval", "mageck.rank.pos", "mageck.fdr.pos", 
               "mageck.rank.neg", "mageck.fdr.neg")
 dataShue[cols.num] <- sapply(dataShue[cols.num],as.numeric)
-dataShue <- dataShue[order(dataShue$deseq2.pval),]
+dataShue <- dataShue |> arrange(deseq2.pval, deseq2.FC)
+rm(cols.num)
 
 
 # Extracting Hits ---------------------------------------------------------
 
 
 Hits.Savidis <- dataSavidis[,-2]
-Hits.Li <- dataLi[,-(2:4)] # Está ordenado por defecto con zika.init.5th
-Hits.WangGSC <- dataWang1[,-(2:3)] # Ya está ordenado
-Hits.Wang293FT <- dataWang2[,-(2:5)] # Ya está ordenado. El primer Gen MMGT1 (EMC5)
-Hits.Rother <- dataRother[,-(2:6)] # Utilizar la hoja Gene Ranking.Ya está ordenado por la columna Rank
-Hits.Shue <- dataShue[,-(2:7)] # La columna deseq2.FC ordena los 500
+Hits.Li <- dataLi[1:500, -(2:4)]
+Hits.WangGSC <- dataWangGSC[,-(2:3)]
+Hits.Wang293FT <- dataWang293FT[,-(2:5)]
+Hits.Rother <- dataRother[,-(2:6)]
+Hits.Shue <- dataShue[1:500,-(2:7)]
 
-rm(dataSavidis, dataLi, dataWang1, dataWang2, dataRother, dataShue)
+rm(dataSavidis, dataLi, dataWangGSC, dataWang293FT, dataRother, dataShue)
 
-Hits.Wang293FT[[1,1]] <- "MMGT1"
-Hits.Li <- Hits.Li[1:500,]
-Hits.Shue <- Hits.Shue[1:500,]
+genes <- c(unlist(Hits.Li), unlist(Hits.Rother), unlist(Hits.Savidis), 
+           unlist(Hits.Shue), unlist(Hits.WangGSC), unlist(Hits.Wang293FT))
+genes <- genes |> unique() |> sort()
 
-genes <- unlist(Hits.Li)
-genes <- c(genes, unlist(Hits.Rother[!(unlist(Hits.Rother) %in% genes),]))
-genes <- c(genes, unlist(Hits.Savidis[!(unlist(Hits.Savidis) %in% genes),]))
-genes <- c(genes, unlist(Hits.Shue[!(unlist(Hits.Shue) %in% genes),]))
-genes <- c(genes, unlist(Hits.Wang1[!(unlist(Hits.Wang1) %in% genes),]))
-genes <- c(genes, unlist(Hits.Wang2[!(unlist(Hits.Wang2) %in% genes),]))
-genes <- sort(genes)
-
-Li <- genes %in% unlist(Hits.Li)
-Rother <- genes %in% unlist(Hits.Rother)
-Savidis <- genes %in% unlist(Hits.Savidis)
-Shue <- genes %in% unlist(Hits.Shue)
-Wang.GSC <- genes %in% unlist(Hits.Wang1)
-Wang.293FT <- genes %in% unlist(Hits.Wang2)
-
-genes.DF <- data.frame(genes, Savidis, Li, Wang.GSC, Wang.293FT, Rother, Shue,
+genes.DF <- data.frame(genes, 
+                       genes %in% unlist(Hits.Savidis), 
+                       genes %in% unlist(Hits.Li), 
+                       genes %in% unlist(Hits.WangGSC), 
+                       genes %in% unlist(Hits.Wang293FT), 
+                       genes %in% unlist(Hits.Rother), 
+                       genes %in% unlist(Hits.Shue),
                        row.names = NULL)
+colnames(genes.DF)[-1] <- c("Savidis", "Li", "Wang.GSC", "Wang.293FT", "Rother", "Shue")
 papers <- colnames(genes.DF)[-1]
+
+# Plotting the Upset plot -------------------------------------------------
+
 
 upset(
   data = genes.DF,
@@ -74,11 +73,41 @@ upset(
   width_ratio=0.1
 )
 
-rm(Savidis, Li, Wang.GSC, Wang.293FT, Rother, Shue)
+upset(
+  data = genes.DF,
+  intersect = papers,
+  name = 'Papers', 
+  width_ratio=0.1, 
+  mode='inclusive_intersection'
+)
 
-dataLi2 <- read_excel("pnas.1900867116.sd01.xlsx", sheet = "zika_gw_5th_best") # Li
-colnames(dataLi2) <- as.vector(dataLi2[1,])
-dataLi2 <- dataLi2[-1,]
-dataLi <- dataLi[-1,]
+upset(
+  data = genes.DF,
+  intersect = papers,
+  name = 'Papers', 
+  width_ratio=0.3, 
+  mode='inclusive_intersection',
+  min_degree=2
+)
 
-dataLi2 <- dataLi2[order(dataLi2$p.bh),]
+genes.DF.int <- genes.DF |> 
+  rowwise() |>
+  mutate(Intersection = sum(c_across(2:7))) |> 
+  filter(Intersection > 1)
+
+
+# Selecting Groups --------------------------------------------------------
+genes.int <- unlist(genes.DF.int$genes, use.names = FALSE)
+
+genes.DF.int |> 
+  filter(Li & Wang.GSC & Wang.293FT & Rother & Savidis & Shue) |> 
+  select(genes) |> 
+  unlist(use.names = FALSE)
+
+# Gen set enrichment analysis ---------------------------------------------
+
+input <- genes.int
+gsea <- gost(input, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gseaUp <- filter(gsea$result, term_size < 500, term_size > 10)
+
+#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7859841/
