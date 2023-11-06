@@ -9,30 +9,35 @@ library(gprofiler2)
 
 # Loading Datasets --------------------------------------------------------
 
-dataSavidis <- read_excel("1-s2.0-S2211124716307689-mmc8.xlsx", sheet = "Summary CME Compare")[-1,] # Savidis
+dataSavidis <- read_excel("ZKVData/1-s2.0-S2211124716307689-mmc8.xlsx", 
+                          sheet = "Summary CME Compare")[-1,]
 
-dataLi <- read_excel("pnas.1900867116.sd01.xlsx", sheet = "zika_gw_5th_best") # Li
+dataLi <- read_excel("ZKVData/pnas.1900867116.sd01.xlsx", 
+                     sheet = "zika_gw_5th_best")
 colnames(dataLi) <- as.vector(dataLi[1,])
 dataLi <- dataLi[-1,]
 cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
 dataLi[cols.num] <- sapply(dataLi[cols.num],as.numeric)
 dataLi <- dataLi[order(dataLi$p.bh),]
 
-dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", sheet = "Ranking", col_names = FALSE, skip = 1)
-dataWang293FT <- read_excel("NIHMS1553325-supplement-3.xlsx", sheet = "Sheet1", col_names = FALSE, skip = 2)
+dataWangGSC <- read_excel("ZKVData/NIHMS1553325-supplement-2.xlsx", 
+                          sheet = "Ranking", col_names = FALSE, skip = 1)
+dataWang293FT <- read_excel("ZKVData/NIHMS1553325-supplement-3.xlsx", 
+                            sheet = "Sheet1", col_names = FALSE, skip = 2)
 colnames(dataWangGSC) <- as.vector(dataWangGSC[1,])
 colnames(dataWang293FT) <- as.vector(dataWang293FT[1,])
 dataWangGSC <- dataWangGSC[-1,]
 dataWang293FT <- dataWang293FT[-1,]
 dataWang293FT[[1,1]] <- "MMGT1"
 
-dataRother <- read_excel("1-s2.0-S0168170221000459-mmc1.xlsx", sheet = "(B) Gene ranking")
+dataRother <- read_excel("ZKVData/1-s2.0-S0168170221000459-mmc1.xlsx", 
+                         sheet = "(B) Gene ranking")
 
-dataShue <- read_excel("jvi.00596-21-s0001.xls", sheet = "Genelist")
+dataShue <- read_excel("ZKVData/jvi.00596-21-s0001.xls", sheet = "Genelist")
 cols.num <- c("deseq2.FC", "deseq2.pval", "mageck.rank.pos", "mageck.fdr.pos", 
               "mageck.rank.neg", "mageck.fdr.neg")
 dataShue[cols.num] <- sapply(dataShue[cols.num],as.numeric)
-dataShue <- dataShue |> arrange(deseq2.pval, deseq2.FC)
+dataShue <- dataShue |> arrange(deseq2.pval, desc(deseq2.FC))
 rm(cols.num)
 
 
@@ -40,11 +45,11 @@ rm(cols.num)
 
 
 Hits.Savidis <- dataSavidis[,-2]
-Hits.Li <- dataLi[1:500, -(2:4)]
+Hits.Li <- dataLi[1:700, -(2:4)]
 Hits.WangGSC <- dataWangGSC[,-(2:3)]
 Hits.Wang293FT <- dataWang293FT[,-(2:5)]
 Hits.Rother <- dataRother[,-(2:6)]
-Hits.Shue <- dataShue[1:500,-(2:7)]
+Hits.Shue <- dataShue[1:700,-(2:7)]
 
 rm(dataSavidis, dataLi, dataWangGSC, dataWang293FT, dataRother, dataShue)
 
@@ -107,7 +112,10 @@ genes.DF.int |>
 # Gen set enrichment analysis ---------------------------------------------
 
 input <- genes.int
-gsea <- gost(input, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gsea <- gost(query = input, organism = "hsapiens", 
+             sources = c("GO"), evcodes = T)
 gseaUp <- filter(gsea$result, term_size < 500, term_size > 10)
+
+
 
 #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7859841/
