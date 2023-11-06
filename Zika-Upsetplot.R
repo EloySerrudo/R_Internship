@@ -118,4 +118,35 @@ gseaUp <- filter(gsea$result, term_size < 500, term_size > 10)
 
 
 
+# Not important -----------------------------------------------------------
+
+
 #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7859841/
+#https://bioconductor.org/packages/release/data/experiment/html/airway.html
+
+
+a <- dataDukhovny |> 
+  mutate(Gene = str_extract(id, "\\(([^)]+)\\)")) |> 
+  mutate(Gene = ifelse(!is.na(Gene), gsub("\\(|\\)", "", Gene), 
+                       ifelse(grepl("^[A-Z0-9]+$", id), id, NA)))
+
+a$id[is.na(a$Gene)]
+
+sum(!grepl("^[A-Z0-9]+$", dataDukhovny$Gene))
+
+
+
+
+dataDukhovny <- dataDukhovny |> 
+  filter(grepl("^[A-Z0-9]+$", dataDukhovny$Gene))
+
+dataDukhovny <- read.csv("inData/JVI.00211-19-sd003.csv", header=TRUE, sep = "\t", stringsAsFactors=FALSE)
+dataDukhovny <- dataDukhovny |> arrange(pos.rank)
+dataDukhovny <- dataDukhovny[1:500,]
+dataDukhovny <- dataDukhovny |> 
+  mutate(Gene = str_extract(id, "\\(([^)]+)\\)")) |> 
+  mutate(Gene = ifelse(!is.na(Gene), gsub("\\(|\\)", "", Gene), 
+                       ifelse(grepl("^[A-Z0-9]+$", id), id, NA))) |> 
+  filter(!is.na(Gene), grepl("^[A-Z0-9]+$", dataDukhovny$Gene))
+
+Hits.Dukhovny <- as.data.frame(dataDukhovny[, -(1:14)])
