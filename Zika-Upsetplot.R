@@ -70,12 +70,12 @@ genes.DF <- data.frame(genes,
                        genes %in% unlist(Hits.Rother), 
                        genes %in% unlist(Hits.Shue),
                        row.names = NULL)
-colnames(genes.DF)[-1] <- c("Savidis", "Li", "Dukhovny", "Wang.GSC", "Wang.293FT", "Rother", "Shue")
+colnames(genes.DF)[-1] <- c("Savidis", "Li", "Dukhovny", "Wang.GSC", 
+                            "Wang.293FT", "Rother", "Shue")
 papers <- colnames(genes.DF)[-1]
 
 
 # Plotting the Upset plot -------------------------------------------------
-
 
 upset(
   data = genes.DF,
@@ -91,7 +91,7 @@ upset(
 
 genes.DF.int <- genes.DF |> 
   rowwise() |>
-  mutate(Intersection = sum(c_across(2:7))) |> 
+  mutate(Intersection = sum(c_across(2:8))) |> 
   filter(Intersection > 1)
 
 genes.int <- unlist(genes.DF.int$genes, use.names = FALSE)
@@ -111,13 +111,6 @@ gostplot(gsea, interactive = FALSE)
 
 
 
-
-# Not important -----------------------------------------------------------
-
-dataDukhovny1 <- read.csv("inData/JVI.00211-19-sd003.csv", header=TRUE, 
-                        sep = "\t", stringsAsFactors=FALSE)
-dataDukhovny2 <- read.csv("inData/JVI.00211-19-sd004.csv", header=TRUE, 
-                          sep = "\t", stringsAsFactors=FALSE)
 
 #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7859841/
 #https://bioconductor.org/packages/release/data/experiment/html/airway.html
