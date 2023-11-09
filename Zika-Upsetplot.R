@@ -50,26 +50,26 @@ rm(cols.num)
 # Extracting Hits ---------------------------------------------------------
 
 
-Hits.Savidis <- dataSavidis[,-2]
-Hits.Li <- dataLi[1:500, -(2:4)]
-Hits.Dukhovny <- dataDukhovny[1:500, -c(1, 3:15)]
-Hits.WangGSC <- dataWangGSC[,-(2:3)]
-Hits.Wang293FT <- dataWang293FT[,-(2:5)]
-Hits.Rother <- dataRother[,-(2:6)]
-Hits.Shue <- dataShue[1:500,-(2:7)]
+Hits.Savidis <- dataSavidis$`Zika CRISPR Screen Hits - Top 100`
+Hits.Li <- dataLi$Gene[1:500]
+Hits.Dukhovny <- dataDukhovny[1:500, 2]
+Hits.WangGSC <- dataWangGSC$`Gene Symbol`
+Hits.Wang293FT <- dataWang293FT$`Gene ID`
+Hits.Rother <- dataRother$`Gene symbol`
+Hits.Shue <- dataShue$genes[1:500]
 
-genes <- c(unlist(Hits.Li), unlist(Hits.Rother), Hits.Dukhovny, unlist(Hits.Savidis), 
-           unlist(Hits.Shue), unlist(Hits.WangGSC), unlist(Hits.Wang293FT))
+genes <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
+           Hits.WangGSC, Hits.Wang293FT)
 genes <- genes |> unique() |> sort()
 
 genes.DF <- data.frame(genes, 
-                       genes %in% unlist(Hits.Savidis), 
-                       genes %in% unlist(Hits.Li), 
+                       genes %in% Hits.Savidis, 
+                       genes %in% Hits.Li, 
                        genes %in% Hits.Dukhovny,
-                       genes %in% unlist(Hits.WangGSC), 
-                       genes %in% unlist(Hits.Wang293FT), 
-                       genes %in% unlist(Hits.Rother), 
-                       genes %in% unlist(Hits.Shue),
+                       genes %in% Hits.WangGSC, 
+                       genes %in% Hits.Wang293FT, 
+                       genes %in% Hits.Rother, 
+                       genes %in% Hits.Shue,
                        row.names = NULL)
 colnames(genes.DF)[-1] <- c("Savidis", "Li", "Dukhovny", "Wang.GSC", 
                             "Wang.293FT", "Rother", "Shue")
@@ -107,18 +107,116 @@ genes.DF.int |>
 # ALL GENES
 gsea <- gost(query = genes.int, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaUp <- gsea$result |> filter(term_size < 500, term_size > 10)
-write_xlsx(gseaUp, "ZIKVData/GSEAup_Zika.xlsx")
-
 gostplot(gsea, interactive = FALSE)
 
-GO.MF <- gseaUp$intersection[20:22]
+gseaUp.mod <- gseaUp[,c("query", "source", "term_id", "term_name", "p_value", 
+                    "query_size", "intersection_size", "term_size", 
+                    "effective_domain_size", "intersection")]
 
-# SHUE GENES
-gseaShue <- gost(query = Hits.Shue$genes, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gseaUp.mod$GeneRatio = paste0(gseaUp.mod$intersection_size,  "/", gseaUp.mod$query_size)
+gseaUp.mod$BgRatio = paste0(gseaUp.mod$term_size, "/", gseaUp.mod$effective_domain_size)
+
+names(gseaUp.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
+                      "query_size", "Count", "term_size", "effective_domain_size", 
+                      "geneID", "GeneRatio", "BgRatio")
+gseaUp.mod$geneID = gsub(",", "/", gseaUp.mod$geneID)
+
+row.names(gp_mod) = gp_mod$ID
+
+write_xlsx(gseaUp.mod, "ZIKVData/GSEAup_Zika.xlsx")
+
+
+# SHUE DATA -----------------------------------------------------------
+
+gseaShue <- gost(query = Hits.Shue, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaUpShue <- gseaShue$result |> filter(term_size < 500, term_size > 10)
+gseaUpShue.mod <- gseaUpShue[,c("query", "source", "term_id", "term_name", "p_value", 
+                                "query_size", "intersection_size", "term_size", 
+                                "effective_domain_size", "intersection")]
+
+gseaUpShue.mod$GeneRatio = paste0(gseaUpShue.mod$intersection_size,  "/", gseaUpShue.mod$query_size)
+gseaUpShue.mod$BgRatio = paste0(gseaUpShue.mod$term_size, "/", gseaUpShue.mod$effective_domain_size)
+
+names(gseaUpShue.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
+                          "query_size", "Count", "term_size", "effective_domain_size", 
+                          "geneID", "GeneRatio", "BgRatio")
+gseaUpShue.mod$geneID = gsub(",", "/", gseaUpShue.mod$geneID)
+
+
+ShueGeneSets <- data.frame(genes, 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[1], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[2], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[3], "/")[[1]]),
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[4], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[5], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[6], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[7], "/")[[1]]),
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[8], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[9], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[10], "/")[[1]]), 
+                       genes %in% sort(str_split(gseaUpShue.mod$geneID[11], "/")[[1]]),
+                       row.names = NULL)
+colnames(ShueGeneSets)[-1] <- paste0("Shue_", gseaUpShue.mod$ID[1:11])
+
+gene.sets <- colnames(ShueGeneSets)[-1]
+
+upset(
+  data = ShueGeneSets,
+  intersect = gene.sets,
+  name = 'Shue Gene Sets', 
+  width_ratio=0.3, 
+  mode='inclusive_intersection',
+  min_degree=1
+)
+
+
+write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
 
 
 
+# Later -------------------------------------------------------------------
+a <- sort(str_split(gseaUpShue.mod$geneID[1], "/")[[1]])
+a
+
+a <- sort(str_split(gseaUpShue.mod$geneID[1], "/"))
+
+ShueGeneSets <- gseaUpShue.mod[1:11,c(3,4,10)]
+
+
+Shue1 <- sort(str_split(ShueGeneSets[1,3], "/")[[1]])
+Shue2 <- sort(str_split(ShueGeneSets[2,3], "/")[[1]])
+Shue3 <- sort(str_split(ShueGeneSets[3,3], "/")[[1]])
+Shue4 <- sort(str_split(ShueGeneSets[4,3], "/")[[1]])
+Shue5 <- sort(str_split(ShueGeneSets[5,3], "/")[[1]])
+Shue6 <- sort(str_split(ShueGeneSets[6,3], "/")[[1]])
+Shue7 <- sort(str_split(ShueGeneSets[7,3], "/")[[1]])
+Shue8 <- sort(str_split(ShueGeneSets[8,3], "/")[[1]])
+Shue9 <- sort(str_split(ShueGeneSets[9,3], "/")[[1]])
+Shue10 <- sort(str_split(ShueGeneSets[10,3], "/")[[1]])
+Shue11 <- sort(str_split(ShueGeneSets[11,3], "/")[[1]])
+
+
+b <- str_split(a, "/")[[1]]
+c <- sort(unique(b))
+
+d <- ShueGeneSets$geneID[1]
+
+
+
+
+ShueGeneSets <- cbind(ShueGeneSets, c(ola, Mundo, Otra, Vez)
+
+                      )
+
+
+for (gen in c) {
+  ShueGeneSets[[gen]] <- NA
+}
+
+ShueGeneSets[1,4:81] <- c %in% Shue1
+
+
+sum()
 
 
 GO.BP <- unique(str_split(paste(gseaUp$intersection[1:12], collapse = ","), ",")[[1]])
@@ -148,28 +246,31 @@ upset(
   mode='inclusive_intersection',
 )
 
-BiocManager::install(c("clusterProfiler", "enrichplot", "DOSE"))
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install(c("clusterProfiler", "enrichplot", "DOSE"), force = TRUE)
 
 library(clusterProfiler)
 library(enrichplot)
 library(DOSE)
 
 # modify the g:Profiler data frame
-gp_mod <- gseaUp[,c("query", "source", "term_id",
-                            "term_name", "p_value", "query_size", 
-                            "intersection_size", "term_size", 
-                            "effective_domain_size", "intersection")]
-gp_mod$GeneRatio = paste0(gp_mod$intersection_size,  "/", gp_mod$query_size)
-gp_mod$BgRatio = paste0(gp_mod$term_size, "/", gp_mod$effective_domain_size)
 
-names(gp_mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                  "query_size", "Count", "term_size", "effective_domain_size", 
-                  "geneID", "GeneRatio", "BgRatio")
-gp_mod$geneID = gsub(",", "/", gp_mod$geneID)
-#row.names(gp_mod) = gp_mod$ID
 
 # define as compareClusterResult object
 gp_mod_cluster = new("compareClusterResult", compareClusterResult = gp_mod)
+enrichplot::dotplot(gp_mod_cluster)
 
 # define as enrichResult object
 gp_mod_enrich  = new("enrichResult", result = gp_mod)
+
+barplot(gp_mod_enrich, showCategory = 40, font.size = 16) + 
+  ggplot2::facet_grid(~Cluster) +
+  ggplot2::ylab("Intersection size")
+
+# Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and Cellular Component (CC)
+# Term Size: Genes que son del BP, MF o CC (Gene set)
+# Query Size: Genes que reaccionaron independientemente del BP, MF o CC
+# Count: Genes que son del BP, MF o CC y Que también reacionaron
+# Effective domain size: Total de genes
