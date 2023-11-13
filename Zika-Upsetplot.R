@@ -152,7 +152,8 @@ SavidisGeneSets <- data.frame(genes,
                            genes %in% str_split(gseaUpSavidis.mod$geneID[4], "/")[[1]], 
                            genes %in% str_split(gseaUpSavidis.mod$geneID[5], "/")[[1]], 
                            row.names = NULL)
-colnames(SavidisGeneSets)[-1] <- paste0("Savidis_", gseaUpSavidis.mod$ID[1:11])
+
+colnames(SavidisGeneSets)[-1] <- paste0("Savidis_", gseaUpSavidis.mod$ID[1:5])
 
 gene.sets <- colnames(SavidisGeneSets)[-1]
 
@@ -166,7 +167,7 @@ upset(
   ggtitle("Pathways Savidis (2016). Biological Processes")
 
 
-write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
+write_xlsx(gseaUpSavidis.mod, "ZIKVData/GSEAupSavidis_Zika.xlsx")
 
 
 
@@ -223,6 +224,12 @@ write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
 
 # Later -------------------------------------------------------------------
 
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+# Obtener la lista de paquetes de Bioconductor instalados
+bioconductor_packages <- BiocManager::available()
+# Desinstalar todos los paquetes de Bioconductor
+BiocManager::install(bioconductor_packages, ask = FALSE, force = TRUE)
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -247,13 +254,32 @@ barplot(gp_mod_enrich, showCategory = 40, font.size = 16) +
   ggplot2::facet_grid(~Cluster) +
   ggplot2::ylab("Intersection size")
 
-# Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and Cellular Component (CC)
+# Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and 
+# Cellular Component (CC)
 # Term Size: Genes que son del BP, MF o CC (Gene set)
 # Query Size: Genes que reaccionaron independientemente del BP, MF o CC
 # Count: Genes que son del BP, MF o CC y Que también reacionaron
 # Effective domain size: Total de genes
 
+# Instala el paquete utils si no está instalado
+if (!requireNamespace("utils", quietly = TRUE))
+  install.packages("utils")
 
+# Cargar la biblioteca utils
+library(utils)
+
+info_paquetes <- installed.packages()
+rownames(info_paquetes) <- NULL
+
+# Seleccionar columnas relevantes
+info_tamanio <- info_paquetes[, c("Package", "LibPath")]
+
+# Imprimir información
+print(info_tamanio)
+
+str(info_paquetes)
+
+remove.packages(nombres, ask = FALSE, dependencies = TRUE)
 # LI DATA ---------------------------------------------------------------
 
 gseaLi <- gost(query = Hits.Li, organism = "hsapiens", sources = c("GO"), evcodes = T)
@@ -300,3 +326,5 @@ upset(
 
 
 write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
+
+# install.packages('/opt/gurobi1003/linux64/R/gurobi_10.0-3_R_4.2.0.tar.gz', repos=NULL)
