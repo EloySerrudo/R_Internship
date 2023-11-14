@@ -173,21 +173,12 @@ write_xlsx(gseaUpSavidis.mod, "ZIKVData/GSEAupSavidis_Zika.xlsx")
 
 
 
-# SHUE DATA -----------------------------------------------------------
 
-gseaShue <- gost(query = Hits.Shue, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaUpShue <- gseaShue$result |> filter(term_size < 500, term_size > 10)
-gseaUpShue.mod <- gseaUpShue[,c("query", "source", "term_id", "term_name", "p_value", 
-                                "query_size", "intersection_size", "term_size", 
-                                "effective_domain_size", "intersection")]
 
-gseaUpShue.mod$GeneRatio = paste0(gseaUpShue.mod$intersection_size,  "/", gseaUpShue.mod$query_size)
-gseaUpShue.mod$BgRatio = paste0(gseaUpShue.mod$term_size, "/", gseaUpShue.mod$effective_domain_size)
 
-names(gseaUpShue.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                          "query_size", "Count", "term_size", "effective_domain_size", 
-                          "geneID", "GeneRatio", "BgRatio")
-gseaUpShue.mod$geneID = gsub(",", "/", gseaUpShue.mod$geneID)
+
+
+# LATER -------------------------------------------------------------------
 
 
 ShueGeneSets <- data.frame(genes, 
@@ -221,39 +212,6 @@ upset(
 write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
 
 
-
-# Later -------------------------------------------------------------------
-
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-# Obtener la lista de paquetes de Bioconductor instalados
-bioconductor_packages <- BiocManager::available()
-# Desinstalar todos los paquetes de Bioconductor
-BiocManager::install(bioconductor_packages, ask = FALSE, force = TRUE)
-
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install(c("clusterProfiler", "enrichplot", "DOSE"), force = TRUE)
-
-library(clusterProfiler)
-library(enrichplot)
-library(DOSE)
-
-# modify the g:Profiler data frame
-
-
-# define as compareClusterResult object
-gp_mod_cluster = new("compareClusterResult", compareClusterResult = gp_mod)
-enrichplot::dotplot(gp_mod_cluster)
-
-# define as enrichResult object
-gp_mod_enrich  = new("enrichResult", result = gp_mod)
-
-barplot(gp_mod_enrich, showCategory = 40, font.size = 16) + 
-  ggplot2::facet_grid(~Cluster) +
-  ggplot2::ylab("Intersection size")
-
 # Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and 
 # Cellular Component (CC)
 # Term Size: Genes que son del BP, MF o CC (Gene set)
@@ -261,25 +219,6 @@ barplot(gp_mod_enrich, showCategory = 40, font.size = 16) +
 # Count: Genes que son del BP, MF o CC y Que también reacionaron
 # Effective domain size: Total de genes
 
-# Instala el paquete utils si no está instalado
-if (!requireNamespace("utils", quietly = TRUE))
-  install.packages("utils")
-
-# Cargar la biblioteca utils
-library(utils)
-
-info_paquetes <- installed.packages()
-rownames(info_paquetes) <- NULL
-
-# Seleccionar columnas relevantes
-info_tamanio <- info_paquetes[, c("Package", "LibPath")]
-
-# Imprimir información
-print(info_tamanio)
-
-str(info_paquetes)
-
-remove.packages(nombres, ask = FALSE, dependencies = TRUE)
 # LI DATA ---------------------------------------------------------------
 
 gseaLi <- gost(query = Hits.Li, organism = "hsapiens", sources = c("GO"), evcodes = T)
@@ -326,5 +265,3 @@ upset(
 
 
 write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
-
-# install.packages('/opt/gurobi1003/linux64/R/gurobi_10.0-3_R_4.2.0.tar.gz', repos=NULL)
