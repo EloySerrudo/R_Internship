@@ -52,7 +52,7 @@ rm(cols.num)
 
 Hits.Savidis <- dataSavidis$`Zika CRISPR Screen Hits - Top 100`
 Hits.Li <- dataLi$Gene[1:500]
-Hits.Dukhovny <- dataDukhovny[1:500, 2]
+Hits.Dukhovny <- dataDukhovny[17206:17706, 2]
 Hits.WangGSC <- dataWangGSC$`Gene Symbol`
 Hits.Wang293FT <- dataWang293FT$`Gene ID`
 Hits.Rother <- dataRother$`Gene symbol`
@@ -100,7 +100,7 @@ genes.DF.int <- genes.DF |>
 genes.int <- genes.DF.int$genes
 
 genes.DF.int |> 
-  filter(Li & Wang.293FT & Rother & Savidis & Shue) |> 
+  filter(Li & Wang.293FT & Rother & Savidis & Shue & Wang.GSC) |> 
   select(genes) |> 
   unlist(use.names = FALSE)
 
