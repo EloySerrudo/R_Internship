@@ -78,7 +78,6 @@ gseaWang293FT.mod.red <- removeRedundancy(gseaWang293FT.mod, 0.3)
 gseaRother.mod.red <- removeRedundancy(gseaRother.mod, 0.3)
 gseaShue.mod.red <- removeRedundancy(gseaShue.mod, 0.3)
 
-
 reduced.GSL <- sort(c(
   gseaSavidis.mod.red$ID, 
   gseaLi.mod.red$ID, 
@@ -90,7 +89,6 @@ reduced.GSL <- sort(c(
 ))
 unique(reduced.GSL)
 
-
 reduced.GSL2 <- removeRedundant(inputData = GSL, 
                                 jacCutoff = 0.3, 
                                 model = "weighted",
@@ -98,7 +96,6 @@ reduced.GSL2 <- removeRedundant(inputData = GSL,
                                 parallel = F)
 
 str_split(reduced.GSL2$geneID[1], ",")[[1]]
-
 
 reducedGeneSet <- data.frame(genes, 
                            genes %in% str_split(reduced.GSL2$geneID[1], ",")[[1]], 
@@ -138,16 +135,6 @@ upset(
   sort_intersections_by = 'degree',
   sort_intersections = 'ascending'
 )
-
-
-input <- gseaUpShue.mod[,c("ID", "p.adjust", "geneID")]
-output <- removeRedundant(inputData = reduced.GSL2, 
-                          jacCutoff = 0.3, 
-                          model = "weighted",
-                          gprofilerOutput = F, 
-                          parallel = F)
-
-
 
 
 gseaUpShue.mod.red <- gseaUpShue.mod[gseaUpShue.mod$ID %in% output$ID,]
