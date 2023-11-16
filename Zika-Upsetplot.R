@@ -50,13 +50,13 @@ rm(cols.num)
 # Extracting Hits ---------------------------------------------------------
 
 
-Hits.Savidis <- dataSavidis$`Zika CRISPR Screen Hits - Top 100`
-Hits.Li <- dataLi$Gene[1:500]
-Hits.Dukhovny <- dataDukhovny[17206:17706, 2]
-Hits.WangGSC <- dataWangGSC$`Gene Symbol`
-Hits.Wang293FT <- dataWang293FT$`Gene ID`
-Hits.Rother <- dataRother$`Gene symbol`
-Hits.Shue <- dataShue$genes[1:500]
+Hits.Savidis <- sort(dataSavidis$`Zika CRISPR Screen Hits - Top 100`)
+Hits.Li <- sort(dataLi$Gene[1:500])
+Hits.Dukhovny <- sort(dataDukhovny[1:500, 2])
+Hits.WangGSC <- sort(dataWangGSC$`Gene Symbol`)
+Hits.Wang293FT <- sort(dataWang293FT$`Gene ID`)
+Hits.Rother <- sort(dataRother$`Gene symbol`)
+Hits.Shue <- sort(dataShue$genes[1:500])
 
 genes <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
            Hits.WangGSC, Hits.Wang293FT)
@@ -133,25 +133,25 @@ write_xlsx(gseaUp.mod, "ZIKVData/GSEAup_Zika.xlsx")
 gseaSavidis <- gost(query = Hits.Savidis, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaUpSavidis <- gseaSavidis$result |> filter(term_size < 500, term_size > 10)
 gseaUpSavidis.mod <- gseaUpSavidis[,c("query", "source", "term_id", "term_name", "p_value", 
-                                "query_size", "intersection_size", "term_size", 
-                                "effective_domain_size", "intersection")]
+                                      "query_size", "intersection_size", "term_size", 
+                                      "effective_domain_size", "intersection")]
 
 gseaUpSavidis.mod$GeneRatio = paste0(gseaUpSavidis.mod$intersection_size,  "/", gseaUpSavidis.mod$query_size)
 gseaUpSavidis.mod$BgRatio = paste0(gseaUpSavidis.mod$term_size, "/", gseaUpSavidis.mod$effective_domain_size)
 
 names(gseaUpSavidis.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                          "query_size", "Count", "term_size", "effective_domain_size", 
-                          "geneID", "GeneRatio", "BgRatio")
+                             "query_size", "Count", "term_size", "effective_domain_size", 
+                             "geneID", "GeneRatio", "BgRatio")
 gseaUpSavidis.mod$geneID = gsub(",", "/", gseaUpSavidis.mod$geneID)
 
 
 SavidisGeneSets <- data.frame(genes, 
-                           genes %in% str_split(gseaUpSavidis.mod$geneID[1], "/")[[1]], 
-                           genes %in% str_split(gseaUpSavidis.mod$geneID[2], "/")[[1]], 
-                           genes %in% str_split(gseaUpSavidis.mod$geneID[3], "/")[[1]],
-                           genes %in% str_split(gseaUpSavidis.mod$geneID[4], "/")[[1]], 
-                           genes %in% str_split(gseaUpSavidis.mod$geneID[5], "/")[[1]], 
-                           row.names = NULL)
+                              genes %in% str_split(gseaUpSavidis.mod$geneID[1], "/")[[1]], 
+                              genes %in% str_split(gseaUpSavidis.mod$geneID[2], "/")[[1]], 
+                              genes %in% str_split(gseaUpSavidis.mod$geneID[3], "/")[[1]],
+                              genes %in% str_split(gseaUpSavidis.mod$geneID[4], "/")[[1]], 
+                              genes %in% str_split(gseaUpSavidis.mod$geneID[5], "/")[[1]], 
+                              row.names = NULL)
 
 colnames(SavidisGeneSets)[-1] <- paste0("Savidis_", gseaUpSavidis.mod$ID[1:5])
 
@@ -176,92 +176,9 @@ write_xlsx(gseaUpSavidis.mod, "ZIKVData/GSEAupSavidis_Zika.xlsx")
 
 
 
-
-
-# LATER -------------------------------------------------------------------
-
-
-ShueGeneSets <- data.frame(genes, 
-                       genes %in% str_split(gseaUpShue.mod$geneID[1], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[2], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[3], "/")[[1]],
-                       genes %in% str_split(gseaUpShue.mod$geneID[4], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[5], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[6], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[7], "/")[[1]],
-                       genes %in% str_split(gseaUpShue.mod$geneID[8], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[9], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[10], "/")[[1]], 
-                       genes %in% str_split(gseaUpShue.mod$geneID[11], "/")[[1]],
-                       row.names = NULL)
-colnames(ShueGeneSets)[-1] <- paste0("Shue_", gseaUpShue.mod$ID[1:11])
-
-gene.sets <- colnames(ShueGeneSets)[-1]
-
-upset(
-  data = ShueGeneSets,
-  intersect = gene.sets,
-  name = 'Shue Gene Sets', 
-  width_ratio=0.3, 
-  mode='inclusive_intersection',
-  min_degree=1
-) +
-  ggtitle("Pathways Shue (2021). Biological Processes")
-
-
-write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
-
-
 # Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and 
 # Cellular Component (CC)
 # Term Size: Genes que son del BP, MF o CC (Gene set)
 # Query Size: Genes que reaccionaron independientemente del BP, MF o CC
 # Count: Genes que son del BP, MF o CC y Que también reacionaron
 # Effective domain size: Total de genes
-
-# LI DATA ---------------------------------------------------------------
-
-gseaLi <- gost(query = Hits.Li, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaUpLi <- gseaLi$result |> filter(term_size < 500, term_size > 10)
-gseaUpLi.mod <- gseaUpLi[,c("query", "source", "term_id", "term_name", "p_value", 
-                            "query_size", "intersection_size", "term_size", 
-                            "effective_domain_size", "intersection")]
-
-gseaUpLi.mod$GeneRatio = paste0(gseaUpLi.mod$intersection_size,  "/", gseaUpLi.mod$query_size)
-gseaUpLi.mod$BgRatio = paste0(gseaUpLi.mod$term_size, "/", gseaUpLi.mod$effective_domain_size)
-
-names(gseaUpLi.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                        "query_size", "Count", "term_size", "effective_domain_size", 
-                        "geneID", "GeneRatio", "BgRatio")
-gseaUpLi.mod$geneID = gsub(",", "/", gseaUpLi.mod$geneID)
-
-LiGeneSets <- gseaUpLi.mod[gseaUpLi.mod$Category == "GO:BP", 10]
-
-a <- str_split(LiGeneSets, "/")
-b <- genes %in% a$value
-
-c <- data.frame(genes)
-c <- c |> mutate()
-
-LiGeneSets <- data.frame(genes, 
-                         genes %in% str_split(gseaUpSavidis.mod$geneID[1], "/")[[1]], 
-                         genes %in% str_split(gseaUpSavidis.mod$geneID[2], "/")[[1]], 
-                         genes %in% str_split(gseaUpSavidis.mod$geneID[3], "/")[[1]],
-                         genes %in% str_split(gseaUpSavidis.mod$geneID[4], "/")[[1]], 
-                         genes %in% str_split(gseaUpSavidis.mod$geneID[5], "/")[[1]], 
-                         row.names = NULL)
-colnames(SavidisGeneSets)[-1] <- paste0("Savidis_", gseaUpSavidis.mod$ID[1:11])
-
-gene.sets <- colnames(SavidisGeneSets)[-1]
-
-upset(
-  data = SavidisGeneSets,
-  intersect = gene.sets,
-  name = 'Savidis Gene Sets', 
-  width_ratio=0.3, 
-  min_degree=1
-) +
-  ggtitle("Pathways Savidis (2016). Biological Processes")
-
-
-write_xlsx(gseaUpShue.mod, "ZIKVData/GSEAupShue_Zika.xlsx")
