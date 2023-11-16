@@ -2,7 +2,6 @@
 # install.packages('slam')
 # install.packages("~/Downloads/ontologyLIP_1.3.tar.gz", repos=NULL, type = "source")
 
-library(gprofiler2)
 library(gurobi)
 library(ontologyLIP)
 
@@ -16,8 +15,8 @@ adaptGSEA <- function(DF, nameDF) {
   DF.mod$GeneRatio <- paste0(DF.mod$intersection_size,  "/", DF.mod$query_size)
   DF.mod$BgRatio <- paste0(DF.mod$term_size, "/", DF.mod$effective_domain_size)
   names(DF.mod) <- c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                    "query_size", "Count", "term_size", "effective_domain_size", 
-                    "geneID", "GeneRatio", "BgRatio")
+                     "query_size", "Count", "term_size", "effective_domain_size", 
+                     "geneID", "GeneRatio", "BgRatio")
   #DF.mod$geneID <- gsub(",", "/", DF.mod$geneID)
   DF.mod$ID <- paste0(DF.mod$ID, nameDF)
   DF.mod
@@ -38,6 +37,19 @@ removeRedundancy <- function(input, threshold) {
   output
 }
 
+
+gmt.2.DataFrame <- function(gmt_file, go) {
+  DF <- data.frame(ID = gmt_file$geneset.names, 
+                   Category = go,
+                   Descriptions = gmt_file$geneset.descriptions,
+                   geneID = NA)
+  for (i in 1:length(gmt_file$genesets)) {
+    aux <- gmt_file$genesets[[i]]
+    DF$geneID[i] <- paste(aux, collapse = ",")
+  }
+  rm(i, aux)
+  DF
+}
 
 # Gen set enrichment analysis ---------------------------------------------
 
@@ -66,9 +78,49 @@ GSL <- rbind(
   gseaWang293FT.mod[,c("ID", "p.adjust", "geneID")],
   gseaRother.mod[,c("ID", "p.adjust", "geneID")],
   gseaShue.mod[,c("ID", "p.adjust", "geneID")]
-  )
+)
 
 # REMOVE REDUNDANCY -------------------------------------------------------
+
+reduced.GSL <- removeRedundant(inputData = GSL, 
+                                jacCutoff = 0.3, 
+                                model = "weighted",
+                                gprofilerOutput = F, 
+                                parallel = F)
+row.names(reduced.GSL) <- NULL
+
+reduced.GSL <- reduced.GSL |> 
+  mutate(origin = substr(ID, 12, 13), .after = ID) |> 
+  mutate(ID = substr(ID, 1, 10))
+
+
+# GMT FILE ----------------------------------------------------------------
+
+install.packages("GSA")
+library(GSA)
+
+#https://baderlab.github.io/CBW_Pathways_2020/gprofiler-lab.html
+
+GO.BP_path <- "ZIKVData/gprofiler_hsapiens.name/hsapiens.GO:BP.name.gmt"
+GO.MF_path <- "ZIKVData/gprofiler_hsapiens.name/hsapiens.GO:MF.name.gmt"
+GO.CC_path <- "ZIKVData/gprofiler_hsapiens.name/hsapiens.GO:CC.name.gmt"
+
+gmt_GO.CC <- GSA.read.gmt(GO.CC_path); # 1976
+gmt_GO.BP <- GSA.read.gmt(GO.BP_path); # 15704
+gmt_GO.MF <- GSA.read.gmt(GO.MF_path); # 5035
+rm(GO.BP_path, GO.MF_path, GO.CC_path)
+
+gmt_GO.CC <- gmt.2.DataFrame(gmt_GO.CC, "GO:CC")
+gmt_GO.BP <- gmt.2.DataFrame(gmt_GO.BP, "GO:BP")
+gmt_GO.MF <- gmt.2.DataFrame(gmt_GO.MF, "GO:MF")
+
+GO.Terms <- bind_rows(gmt_GO.CC, gmt_GO.BP, gmt_GO.MF) |> arrange(ID)
+rm(gmt_GO.CC, gmt_GO.BP, gmt_GO.MF)
+
+# write.csv(GO.Terms, file = "GO_Terms.csv", row.names = FALSE)
+
+
+# Later -------------------------------------------------------------------
 
 gseaSavidis.mod.red <- removeRedundancy(gseaSavidis.mod, 0.3)
 gseaLi.mod.red <- removeRedundancy(gseaLi.mod, 0.3)
@@ -89,39 +141,35 @@ reduced.GSL <- sort(c(
 ))
 unique(reduced.GSL)
 
-reduced.GSL2 <- removeRedundant(inputData = GSL, 
-                                jacCutoff = 0.3, 
-                                model = "weighted",
-                                gprofilerOutput = F, 
-                                parallel = F)
+
 
 str_split(reduced.GSL2$geneID[1], ",")[[1]]
 
 reducedGeneSet <- data.frame(genes, 
-                           genes %in% str_split(reduced.GSL2$geneID[1], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[2], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[3], ",")[[1]],
-                           genes %in% str_split(reduced.GSL2$geneID[4], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[5], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[6], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[7], ",")[[1]],
-                           genes %in% str_split(reduced.GSL2$geneID[8], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[9], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[10], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[11], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[12], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[13], ",")[[1]],
-                           genes %in% str_split(reduced.GSL2$geneID[14], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[15], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[16], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[17], ",")[[1]],
-                           genes %in% str_split(reduced.GSL2$geneID[18], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[19], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[20], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[21], ",")[[1]], 
-                           genes %in% str_split(reduced.GSL2$geneID[22], ",")[[1]],
-                           genes %in% str_split(reduced.GSL2$geneID[23], ",")[[1]], 
-                           row.names = NULL)
+                             genes %in% str_split(reduced.GSL2$geneID[1], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[2], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[3], ",")[[1]],
+                             genes %in% str_split(reduced.GSL2$geneID[4], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[5], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[6], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[7], ",")[[1]],
+                             genes %in% str_split(reduced.GSL2$geneID[8], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[9], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[10], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[11], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[12], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[13], ",")[[1]],
+                             genes %in% str_split(reduced.GSL2$geneID[14], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[15], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[16], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[17], ",")[[1]],
+                             genes %in% str_split(reduced.GSL2$geneID[18], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[19], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[20], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[21], ",")[[1]], 
+                             genes %in% str_split(reduced.GSL2$geneID[22], ",")[[1]],
+                             genes %in% str_split(reduced.GSL2$geneID[23], ",")[[1]], 
+                             row.names = NULL)
 
 colnames(reducedGeneSet)[-1] <- substr(reduced.GSL2$ID, 1, 10)
 gene.sets.2 <- colnames(reducedGeneSet)[-1]
