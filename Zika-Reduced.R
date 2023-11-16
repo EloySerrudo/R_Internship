@@ -119,6 +119,23 @@ rm(gmt_GO.CC, gmt_GO.BP, gmt_GO.MF)
 
 # write.csv(GO.Terms, file = "GO_Terms.csv", row.names = FALSE)
 
+# NEW DATA ----------------------------------------------------------------
+
+new.dataLi <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'Li']), ]
+rownames(new.dataLi) <- NULL
+new.dataWangGSC <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'WG']), ]
+rownames(new.dataWangGSC) <- NULL
+new.dataWang293FT <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'W2']), ]
+rownames(new.dataWang293FT) <- NULL
+new.dataDukhovny <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'Du']), ]
+rownames(new.dataDukhovny) <- NULL
+new.dataRother <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'Ro']), ]
+rownames(new.dataRother) <- NULL
+new.dataShue <- GO.Terms[(GO.Terms$ID %in% reduced.GSL$ID[reduced.GSL$origin == 'Sh']), ]
+rownames(new.dataShue) <- NULL
+
+genes.Li <- paste(new.dataLi$geneID, collapse = ",") |> str_split(',') |> 
+  unlist() |> unique() |> sort()
 
 # Later -------------------------------------------------------------------
 
