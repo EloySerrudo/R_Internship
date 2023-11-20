@@ -7,28 +7,30 @@ library(gprofiler2)
 
 # Loading Datasets --------------------------------------------------------
 
-dataSavidis <- read_excel("ZKVData/1-s2.0-S2211124716307689-mmc8.xlsx", 
+dataSavidis <- read_excel("1-s2.0-S2211124716307689-mmc8.xlsx", 
                           sheet = "Summary CME Compare")[-1,]
 
-dataLi <- read_excel("ZKVData/pnas.1900867116.sd01.xlsx", sheet = "zika_gw_5th_best")
+dataLi <- read_excel("pnas.1900867116.sd01.xlsx", sheet = "zika_gw_5th_best")
 colnames(dataLi) <- as.vector(dataLi[1,])
 dataLi <- dataLi[-1,]
 cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
 dataLi[cols.num] <- sapply(dataLi[cols.num],as.numeric)
 dataLi <- dataLi[order(dataLi$p.bh),]
+dataLi <- dataLi[1:500,]
 
-dataDukhovny <- read.csv("ZKVData/JVI.00211-19-sd003.csv", header=TRUE, 
+dataDukhovny <- read.csv("inData/JVI.00211-19-sd003.csv", header=TRUE, 
                          sep = "\t", stringsAsFactors=FALSE)
 dataDukhovny <- dataDukhovny |> 
   mutate(Gene = ifelse(grepl("^[A-Z0-9]+$", id), id, str_extract(id, "\\(([^)]+)\\)$")), 
          .after = id) |> 
   mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
-  arrange(pos.rank) |> 
+  arrange(neg.rank) |> 
   filter(!is.na(Gene))
+dataDukhovny <- dataDukhovny[1:500,]
 
-dataWangGSC <- read_excel("ZKVData/NIHMS1553325-supplement-2.xlsx", 
+dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", 
                           sheet = "Ranking", col_names = FALSE, skip = 1)
-dataWang293FT <- read_excel("ZKVData/NIHMS1553325-supplement-3.xlsx", 
+dataWang293FT <- read_excel("NIHMS1553325-supplement-3.xlsx", 
                             sheet = "Sheet1", col_names = FALSE, skip = 2)
 colnames(dataWangGSC) <- as.vector(dataWangGSC[1,])
 colnames(dataWang293FT) <- as.vector(dataWang293FT[1,])
@@ -36,15 +38,16 @@ dataWangGSC <- dataWangGSC[-1,]
 dataWang293FT <- dataWang293FT[-1,]
 dataWang293FT[[1,1]] <- "MMGT1"
 
-dataRother <- read_excel("ZKVData/1-s2.0-S0168170221000459-mmc1.xlsx", 
+dataRother <- read_excel("1-s2.0-S0168170221000459-mmc1.xlsx", 
                          sheet = "(B) Gene ranking")
 
-dataShue <- read_excel("ZKVData/jvi.00596-21-s0001.xls", sheet = "Genelist")
+dataShue <- read_excel("jvi.00596-21-s0001.xls", sheet = "Genelist")
 cols.num <- c("deseq2.FC", "deseq2.pval", "mageck.rank.pos", "mageck.fdr.pos", 
               "mageck.rank.neg", "mageck.fdr.neg")
 dataShue[cols.num] <- sapply(dataShue[cols.num], as.numeric)
 dataShue <- dataShue |> arrange(deseq2.pval, desc(deseq2.FC))
 rm(cols.num)
+dataShue <- dataShue[1:500,]
 
 
 # Extracting Hits ---------------------------------------------------------
@@ -107,9 +110,9 @@ genes.DF.int |>
 # Gen set enrichment analysis ---------------------------------------------
 
 # ALL GENES
-gsea <- gost(query = genes.int, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gsea <- gost(query = genes, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaUp <- gsea$result |> filter(term_size < 500, term_size > 10)
-gostplot(gsea, interactive = FALSE)
+# gostplot(gsea, interactive = FALSE)
 
 gseaUp.mod <- gseaUp[, c("query", "source", "term_id", "term_name", "p_value", 
                          "query_size", "intersection_size", "term_size", 
@@ -125,49 +128,7 @@ gseaUp.mod$geneID = gsub(",", "/", gseaUp.mod$geneID)
 
 # row.names(gp_mod) = gp_mod$ID
 
-write_xlsx(gseaUp.mod, "ZIKVData/GSEAup_Zika.xlsx")
-
-
-# SAVIDIS DATA -----------------------------------------------------------
-
-gseaSavidis <- gost(query = Hits.Savidis, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaUpSavidis <- gseaSavidis$result |> filter(term_size < 500, term_size > 10)
-gseaUpSavidis.mod <- gseaUpSavidis[,c("query", "source", "term_id", "term_name", "p_value", 
-                                      "query_size", "intersection_size", "term_size", 
-                                      "effective_domain_size", "intersection")]
-
-gseaUpSavidis.mod$GeneRatio = paste0(gseaUpSavidis.mod$intersection_size,  "/", gseaUpSavidis.mod$query_size)
-gseaUpSavidis.mod$BgRatio = paste0(gseaUpSavidis.mod$term_size, "/", gseaUpSavidis.mod$effective_domain_size)
-
-names(gseaUpSavidis.mod) = c("Cluster", "Category", "ID", "Description", "p.adjust", 
-                             "query_size", "Count", "term_size", "effective_domain_size", 
-                             "geneID", "GeneRatio", "BgRatio")
-gseaUpSavidis.mod$geneID = gsub(",", "/", gseaUpSavidis.mod$geneID)
-
-
-SavidisGeneSets <- data.frame(genes, 
-                              genes %in% str_split(gseaUpSavidis.mod$geneID[1], "/")[[1]], 
-                              genes %in% str_split(gseaUpSavidis.mod$geneID[2], "/")[[1]], 
-                              genes %in% str_split(gseaUpSavidis.mod$geneID[3], "/")[[1]],
-                              genes %in% str_split(gseaUpSavidis.mod$geneID[4], "/")[[1]], 
-                              genes %in% str_split(gseaUpSavidis.mod$geneID[5], "/")[[1]], 
-                              row.names = NULL)
-
-colnames(SavidisGeneSets)[-1] <- paste0("Savidis_", gseaUpSavidis.mod$ID[1:5])
-
-gene.sets <- colnames(SavidisGeneSets)[-1]
-
-upset(
-  data = SavidisGeneSets,
-  intersect = gene.sets,
-  name = 'Savidis Gene Sets', 
-  width_ratio=0.3, 
-  min_degree=1
-) +
-  ggtitle("Pathways Savidis (2016). Biological Processes")
-
-
-write_xlsx(gseaUpSavidis.mod, "ZIKVData/GSEAupSavidis_Zika.xlsx")
+# write_xlsx(gseaUp.mod, "ZIKVData/GSEAup_Zika.xlsx")
 
 
 
@@ -176,6 +137,9 @@ write_xlsx(gseaUpSavidis.mod, "ZIKVData/GSEAupSavidis_Zika.xlsx")
 
 
 
+
+# Para calcular el 'inclusive_intersection' a partir del exclusive sólo sumar la
+# cantidad de genes que coinciden en cada intersección
 # Gene Ontology (GO): Biological Process (BP), Molecular Function (MF) and 
 # Cellular Component (CC)
 # Term Size: Genes que son del BP, MF o CC (Gene set)
