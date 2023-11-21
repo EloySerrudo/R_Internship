@@ -16,7 +16,6 @@ dataLi <- dataLi[-1,]
 cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
 dataLi[cols.num] <- sapply(dataLi[cols.num],as.numeric)
 dataLi <- dataLi[order(dataLi$p.bh),]
-dataLi <- dataLi[1:500,]
 
 dataDukhovny <- read.csv("inData/JVI.00211-19-sd003.csv", header=TRUE, 
                          sep = "\t", stringsAsFactors=FALSE)
@@ -26,7 +25,6 @@ dataDukhovny <- dataDukhovny |>
   mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
   arrange(neg.rank) |> 
   filter(!is.na(Gene))
-dataDukhovny <- dataDukhovny[1:500,]
 
 dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", 
                           sheet = "Ranking", col_names = FALSE, skip = 1)
@@ -47,7 +45,6 @@ cols.num <- c("deseq2.FC", "deseq2.pval", "mageck.rank.pos", "mageck.fdr.pos",
 dataShue[cols.num] <- sapply(dataShue[cols.num], as.numeric)
 dataShue <- dataShue |> arrange(deseq2.pval, desc(deseq2.FC))
 rm(cols.num)
-dataShue <- dataShue[1:500,]
 
 
 # Extracting Hits ---------------------------------------------------------
@@ -137,6 +134,7 @@ gseaUp.mod$geneID = gsub(",", "/", gseaUp.mod$geneID)
 
 
 
+# Info --------------------------------------------------------------------
 
 # Para calcular el 'inclusive_intersection' a partir del exclusive sólo sumar la
 # cantidad de genes que coinciden en cada intersección
