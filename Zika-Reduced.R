@@ -19,22 +19,6 @@ adaptGSEA <- function(DF) {
   DF.mod
 }
 
-
-removeRedundancy <- function(input, threshold) {
-  input.short <- input
-  input.short$geneID = gsub("/", ",", input.short$geneID)
-  input.short <- input.short[,c("ID", "p.adjust", "geneID")]
-  output.short <- removeRedundant(inputData = input.short, 
-                                  jacCutoff = threshold, 
-                                  model = "weighted",
-                                  gprofilerOutput = F, 
-                                  parallel = F)
-  output <- input[input$ID %in% output.short$ID,]
-  #output$geneID = gsub(",", "/", output$geneID)
-  output
-}
-
-
 gmt.2.DataFrame <- function(gmt_file, go) {
   DF <- data.frame(ID = gmt_file$geneset.names, 
                    Category = go,
@@ -50,13 +34,22 @@ gmt.2.DataFrame <- function(gmt_file, go) {
 
 # Gen set enrichment analysis ---------------------------------------------
 
+bg.Li <- sort(dataLi$Gene)
+bg.Dukhovny <- sort(dataDukhovny$Gene)
+bg.Shue <- sort(dataShue$genes)
+
+sum(is.na(bg.Dukhovny))
+
+
 gseaSavidis <- gost(query = Hits.Savidis, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaLi <- gost(query = Hits.Li, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaDukhovny <- gost(query = Hits.Dukhovny, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gseaLi <- gost(query = Hits.Li, organism = "hsapiens", sources = c("GO"), evcodes = T, custom_bg = bg.Li)
+
+gseaDukhovny <- gost(query = Hits.Dukhovny, organism = "hsapiens", sources = c("GO"), evcodes = T)#, custom_bg = bg.Dukhovny)
+
 gseaWangGSC <- gost(query = Hits.WangGSC, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaWang293FT <- gost(query = Hits.Wang293FT, organism = "hsapiens", sources = c("GO"), evcodes = T)
 gseaRother <- gost(query = Hits.Rother, organism = "hsapiens", sources = c("GO"), evcodes = T)
-gseaShue <- gost(query = Hits.Shue, organism = "hsapiens", sources = c("GO"), evcodes = T)
+gseaShue <- gost(query = Hits.Shue, organism = "hsapiens", sources = c("GO"), evcodes = T, custom_bg = bg.Shue)
 
 gseaSavidis.mod <- adaptGSEA(gseaSavidis)
 gseaLi.mod <- adaptGSEA(gseaLi)
@@ -79,26 +72,23 @@ GSL.1 <- rbind(
   gseaShue.mod[,c("ID", "p.adjust", "geneID")]
 )
 
-pre.genes <- paste(GSL.1$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-
-length(unique(GSL.1$ID))
 GSL.2 <- GSL.1[match(unique(GSL.1$ID), GSL.1$ID), ]
+
+pre.gene.sets <- sort(GSL.2$ID) |> sort()
 
 # PRE ANALYSIS ------------------------------------------------------------
 
-pre.genes.DF <- data.frame(pre.genes, 
-                           pre.genes %in% Hits.WangGSC, 
-                           pre.genes %in% Hits.Wang293FT, 
-                           pre.genes %in% Hits.Shue, 
-                           pre.genes %in% Hits.Savidis, 
-                           pre.genes %in% Hits.Rother,
-                           pre.genes %in% Hits.Li, 
-                           pre.genes %in% Hits.Dukhovny,
-                           row.names = NULL)
-colnames(pre.genes.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
-                                "Rother", "Li", "Dukhovny")
-
+pre.gene.sets.DF <- data.frame(pre.gene.sets, 
+                               pre.gene.sets %in% gseaWangGSC.mod$ID, 
+                               pre.gene.sets %in% gseaWang293FT.mod$ID, 
+                               pre.gene.sets %in% gseaShue.mod$ID, 
+                               pre.gene.sets %in% gseaSavidis.mod$ID, 
+                               pre.gene.sets %in% gseaRother.mod$ID,
+                               pre.gene.sets %in% gseaLi.mod$ID, 
+                               pre.gene.sets %in% gseaDukhovny.mod$ID,
+                               row.names = NULL)
+colnames(pre.gene.sets.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis",
+                                    "Rother", "Li", "Dukhovny")
 
 # REMOVE REDUNDANCY -------------------------------------------------------
 
@@ -143,7 +133,7 @@ GO.Terms <- bind_rows(gmt_GO.CC, gmt_GO.BP, gmt_GO.MF) |> arrange(ID)
 rm(gmt_GO.CC, gmt_GO.BP, gmt_GO.MF)
 
 # write.csv(GO.Terms, file = "GO_Terms.csv", row.names = FALSE)
-# GO.Terms <- read.csv("ZIKVData/GO_Terms.csv")
+GO.Terms <- read.csv("ZIKVData/GO_Terms.csv")
 
 
 # Build a new GMT File ----------------------------------------------------
@@ -160,12 +150,13 @@ writeLines(new_gmt, con = "ZIKVData/new_gmt.name.gmt")
 # POST ANALYSIS -----------------------------------------------------------
 # gp__EhA0_PFup_VAE
 new.gseaSavidis <- gost(query = Hits.Savidis, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
-new.gseaLi <- gost(query = Hits.Li, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
+new.gseaLi <- gost(query = Hits.Li, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T, custom_bg = bg.Li)
 new.gseaDukhovny <- gost(query = Hits.Dukhovny, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
 new.gseaWangGSC <- gost(query = Hits.WangGSC, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
 new.gseaWang293FT <- gost(query = Hits.Wang293FT, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
 new.gseaRother <- gost(query = Hits.Rother, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
-new.gseaShue <- gost(query = Hits.Shue, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T)
+new.gseaShue <- gost(query = Hits.Shue, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T, custom_bg = bg.Shue)
+rm(Hits.Dukhovny, Hits.Li, Hits.Rother, Hits.Wang293FT, Hits.WangGSC, Hits.Savidis, Hits.Shue)
 
 new.gseaSavidis.mod <- adaptGSEA(new.gseaSavidis)
 new.gseaLi.mod <- adaptGSEA(new.gseaLi)
@@ -177,76 +168,71 @@ new.gseaShue.mod <- adaptGSEA(new.gseaShue)
 rm(new.gseaSavidis, new.gseaLi, new.gseaDukhovny, new.gseaWangGSC, 
    new.gseaWang293FT, new.gseaRother, new.gseaShue)
 
-genes.Savidis <- paste(new.gseaSavidis.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.Li <- paste(new.gseaLi.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.Dukhovny <- paste(new.gseaDukhovny.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.WangGSC <- paste(new.gseaWangGSC.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.Wang293FT <- paste(new.gseaWang293FT.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.Rother <- paste(new.gseaRother.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
-genes.Shue <- paste(new.gseaShue.mod$geneID, collapse = ",") |> str_split(',') |> 
-  unlist() |> unique() |> sort()
+pos.gene.sets <- c(
+  new.gseaSavidis.mod$ID,
+  new.gseaLi.mod$ID,
+  new.gseaDukhovny.mod$ID,
+  new.gseaWangGSC.mod$ID,
+  new.gseaWang293FT.mod$ID,
+  new.gseaRother.mod$ID,
+  new.gseaShue.mod$ID
+) |> unique() |> sort()
 
-pos.genes <- c(genes.Li, genes.Rother, genes.Dukhovny, genes.Shue, genes.WangGSC, 
-               genes.Wang293FT) |> unique() |> sort()
-
-pos.genes.DF <- data.frame(pos.genes, 
-                           pos.genes %in% genes.WangGSC, 
-                           pos.genes %in% genes.Wang293FT, 
-                           pos.genes %in% genes.Shue, 
-                           pos.genes %in% genes.Savidis, 
-                           pos.genes %in% genes.Rother,
-                           pos.genes %in% genes.Li, 
-                           pos.genes %in% genes.Dukhovny,
+pos.gene.sets.DF <- data.frame(pos.gene.sets, 
+                           pos.gene.sets %in% new.gseaWangGSC.mod$ID, 
+                           pos.gene.sets %in% new.gseaWang293FT.mod$ID, 
+                           pos.gene.sets %in% new.gseaShue.mod$ID, 
+                           pos.gene.sets %in% new.gseaSavidis.mod$ID, 
+                           pos.gene.sets %in% new.gseaRother.mod$ID,
+                           pos.gene.sets %in% new.gseaLi.mod$ID, 
+                           pos.gene.sets %in% new.gseaDukhovny.mod$ID,
                            row.names = NULL)
-colnames(pos.genes.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
+colnames(pos.gene.sets.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
                                 "Rother", "Li", "Dukhovny")
 
 # Plotting the Upset plot -------------------------------------------------
 
-
 upset(
-  data = pre.genes.DF,
+  data = pre.gene.sets.DF,
   intersect = papers,
   name = 'Papers', 
   width_ratio=0.2,
-  sort_intersections_by = 'degree',
+  sort_intersections_by = c('degree', 'cardinality'),
   sort_intersections = 'ascending',
-  sort_sets = FALSE
+  sort_sets = 'descending'
 ) +
-  ggtitle("Pre Genes from 6 studies")
-
+  ggtitle("Pre Reduction Gene Sets")
 
 upset(
-  data = new.genes.DF,
+  data = pos.gene.sets.DF,
   intersect = papers,
   name = 'Papers', 
   width_ratio=0.2,
-  sort_intersections_by = 'degree',
+  sort_intersections_by = c('degree', 'cardinality'),
   sort_intersections = 'ascending',
-  sort_sets = FALSE
+  sort_sets = 'descending'
 ) +
-  ggtitle("Post Genes from 6 studies")
+  ggtitle("Reduced Gene Sets")
 
 
-new.genes.DF.int <- new.genes.DF |> 
-  rowwise() |>
-  mutate(Intersection = sum(c_across(2:8))) |> 
-  filter(Intersection > 1)
+Reduced.Gene.Sets <- GO.Terms |> filter(ID %in% pos.gene.sets)
 
-new.genes.DF.int |> 
-  filter(Li & Wang.293FT & Rother & Savidis & Shue & Wang.GSC) |> 
-  select(z.genes.2) |> 
-  unlist(use.names = FALSE)
+pos.gene.sets.DF[pos.gene.sets.DF$pos.gene.sets == "GO:0032977", ]
+
+papers[unlist(pos.gene.sets.DF[pos.gene.sets.DF$pos.gene.sets == "GO:0032977", 2:8])]
 
 
-z1 <- gost(query = new.genes, organism = "hsapiens", sources = c("GO"), evcodes = T)
-z2 <- adaptGSEA(z1)
+
+
+new.gseaSavidis.mod$ID[new.gseaSavidis.mod$ID %in% pos.gene.sets]
+new.gseaLi.mod$ID[new.gseaLi.mod$ID %in% pos.gene.sets]
+new.gseaDukhovny.mod$ID[new.gseaDukhovny.mod$ID %in% pos.gene.sets]
+new.gseaWangGSC.mod$ID[new.gseaWangGSC.mod$ID %in% pos.gene.sets]
+new.gseaWang293FT.mod$ID[new.gseaWang293FT.mod$ID %in% pos.gene.sets]
+new.gseaRother.mod$ID[new.gseaRother.mod$ID %in% pos.gene.sets]
+new.gseaShue.mod$ID[new.gseaShue.mod$ID %in% pos.gene.sets]
+
+
 
 # Later -------------------------------------------------------------------
 
@@ -267,6 +253,8 @@ rownames(z.new.gseaRother.mod) <- NULL
 z.new.gseaShue.mod <- GO.Terms[GO.Terms$ID %in% z.gseaShue.mod$ID[z.gseaShue.mod$ID %in% z.reduced.GSL.2$ID], ]
 rownames(z.new.gseaShue.mod) <- NULL
 
+GO.Terms.Reduced <- GO.Terms[GO.Terms$ID %in% reduced.GSL.2$ID, ]
+rownames(GO.Terms.Reduced) <- NULL
 new.gseaSavidis.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaSavidis.mod$ID, GO.Terms.Reduced$ID)]
 new.gseaLi.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaLi.mod$ID, GO.Terms.Reduced$ID)]
 new.gseaDukhovny.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaDukhovny.mod$ID, GO.Terms.Reduced$ID)]
@@ -274,4 +262,14 @@ new.gseaWangGSC.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaWangGSC.
 new.gseaWang293FT.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaWang293FT.mod$ID, GO.Terms.Reduced$ID)]
 new.gseaRother.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaRother.mod$ID, GO.Terms.Reduced$ID)]
 new.gseaShue.mod$Category <- GO.Terms.Reduced$Category[match(new.gseaShue.mod$ID, GO.Terms.Reduced$ID)]
+rm(GO.Terms, GO.Terms.Reduced)
 
+pos.genes.DF |> 
+  rowwise() |>
+  mutate(Intersection = sum(c_across(2:8))) |> 
+  filter(Li & Wang.293FT & Rother & Savidis & Shue)
+
+GO.Terms.Reduced[GO.Terms.Reduced$ID == pos.genes.DF |> 
+                   rowwise() |>
+                   mutate(Intersection = sum(c_across(2:8))) |> 
+                   filter(Li & Wang.293FT & Rother & Savidis & Shue),]
