@@ -158,15 +158,23 @@ new.gseaRother <- gost(query = Hits.Rother, organism = "gp__avQf_XJ5q_AEk", sour
 new.gseaShue <- gost(query = Hits.Shue, organism = "gp__avQf_XJ5q_AEk", sources = c("GO"), evcodes = T, custom_bg = bg.Shue)
 rm(Hits.Dukhovny, Hits.Li, Hits.Rother, Hits.Wang293FT, Hits.WangGSC, Hits.Savidis, Hits.Shue)
 
-new.gseaSavidis.mod <- adaptGSEA(new.gseaSavidis)
-new.gseaLi.mod <- adaptGSEA(new.gseaLi)
-new.gseaDukhovny.mod <- adaptGSEA(new.gseaDukhovny)
-new.gseaWangGSC.mod <- adaptGSEA(new.gseaWangGSC)
-new.gseaWang293FT.mod <- adaptGSEA(new.gseaWang293FT)
-new.gseaRother.mod <- adaptGSEA(new.gseaRother)
-new.gseaShue.mod <- adaptGSEA(new.gseaShue)
+new.gseaSavidis.mod <- adaptGSEA(new.gseaSavidis) |> mutate(Origin = "Savidis")
+new.gseaLi.mod <- adaptGSEA(new.gseaLi) |> mutate(Origin = "Li")
+new.gseaDukhovny.mod <- adaptGSEA(new.gseaDukhovny) |> mutate(Origin = "Dukhovny")
+new.gseaWangGSC.mod <- adaptGSEA(new.gseaWangGSC) |> mutate(Origin = "WangGSC")
+new.gseaWang293FT.mod <- adaptGSEA(new.gseaWang293FT) |> mutate(Origin = "Wang293FT")
+new.gseaRother.mod <- adaptGSEA(new.gseaRother) |> mutate(Origin = "Rother")
+new.gseaShue.mod <- adaptGSEA(new.gseaShue) |> mutate(Origin = "Shue")
 rm(new.gseaSavidis, new.gseaLi, new.gseaDukhovny, new.gseaWangGSC, 
    new.gseaWang293FT, new.gseaRother, new.gseaShue)
+
+GSL.Origin <- rbind(new.gseaSavidis.mod[c(3,13)],
+           new.gseaLi.mod[c(3,13)],
+           new.gseaDukhovny.mod[c(3,13)],
+           new.gseaWangGSC.mod[c(3,13)],
+           new.gseaWang293FT.mod[c(3,13)],
+           new.gseaRother.mod[c(3,13)],
+           new.gseaShue.mod[c(3,13)])
 
 pos.gene.sets <- c(
   new.gseaSavidis.mod$ID,
@@ -189,6 +197,9 @@ pos.gene.sets.DF <- data.frame(pos.gene.sets,
                            row.names = NULL)
 colnames(pos.gene.sets.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
                                 "Rother", "Li", "Dukhovny")
+
+
+
 
 # Plotting the Upset plot -------------------------------------------------
 
@@ -215,24 +226,12 @@ upset(
   ggtitle("Reduced Gene Sets")
 
 
-Reduced.Gene.Sets <- GO.Terms |> filter(ID %in% pos.gene.sets)
 
-pos.gene.sets.DF[pos.gene.sets.DF$pos.gene.sets == "GO:0032977", ]
+Reduced.Gene.Sets <- GO.Terms |> filter(ID %in% pos.gene.sets) |> mutate(Origin = NA)
 
-papers[unlist(pos.gene.sets.DF[pos.gene.sets.DF$pos.gene.sets == "GO:0032977", 2:8])]
-
-
-
-
-new.gseaSavidis.mod$ID[new.gseaSavidis.mod$ID %in% pos.gene.sets]
-new.gseaLi.mod$ID[new.gseaLi.mod$ID %in% pos.gene.sets]
-new.gseaDukhovny.mod$ID[new.gseaDukhovny.mod$ID %in% pos.gene.sets]
-new.gseaWangGSC.mod$ID[new.gseaWangGSC.mod$ID %in% pos.gene.sets]
-new.gseaWang293FT.mod$ID[new.gseaWang293FT.mod$ID %in% pos.gene.sets]
-new.gseaRother.mod$ID[new.gseaRother.mod$ID %in% pos.gene.sets]
-new.gseaShue.mod$ID[new.gseaShue.mod$ID %in% pos.gene.sets]
-
-
+for (i in 1:nrow(Reduced.Gene.Sets) ) {
+  Reduced.Gene.Sets[i, 5] <- GSL.Origin |> filter(ID == Reduced.Gene.Sets[i, 1]) |> select(Origin) |> unlist() |> paste(collapse = "/")
+}
 
 # Later -------------------------------------------------------------------
 
