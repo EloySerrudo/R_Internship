@@ -58,6 +58,9 @@ Hits.Wang293FT <- sort(dataWang293FT$`Gene ID`)
 Hits.Rother <- sort(dataRother$`Gene symbol`)
 Hits.Shue <- sort(dataShue$genes[1:500])
 
+papers <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
+            "Rother", "Li", "Dukhovny")
+
 genes <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
            Hits.WangGSC, Hits.Wang293FT)
 genes <- genes |> unique() |> sort()
@@ -71,9 +74,7 @@ genes.DF <- data.frame(genes,
                        genes %in% Hits.Li, 
                        genes %in% Hits.Dukhovny,
                        row.names = NULL)
-colnames(genes.DF)[-1] <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
-                            "Rother", "Li", "Dukhovny")
-papers <- colnames(genes.DF)[-1]
+colnames(genes.DF)[-1] <- papers
 
 
 # Plotting the Upset plot -------------------------------------------------
@@ -144,3 +145,4 @@ gseaUp.mod$geneID = gsub(",", "/", gseaUp.mod$geneID)
 # Query Size: Genes que reaccionaron independientemente del BP, MF o CC
 # Count: Genes que son del BP, MF o CC y Que también reacionaron
 # Effective domain size: Total de genes
+#dataLi <- dataLi[order(dataLi$p.bh),]
