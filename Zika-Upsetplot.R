@@ -17,14 +17,22 @@ cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
 dataLi[cols.num] <- sapply(dataLi[cols.num],as.numeric)
 dataLi <- dataLi[order(dataLi$p.bh),]
 
-dataDukhovny <- read.csv("inData/JVI.00211-19-sd003.csv", header=TRUE, 
+dataDukhovny1 <- read.csv("ZIKVData/JVI.00211-19-sd003.csv", header=TRUE, 
                          sep = "\t", stringsAsFactors=FALSE)
-dataDukhovny <- dataDukhovny |> 
-  mutate(Gene = ifelse(grepl("^[A-Z0-9]+$", id), id, str_extract(id, "\\(([^)]+)\\)$")), 
-         .after = id) |> 
-  mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
-  arrange(neg.rank) |> 
-  filter(!is.na(Gene))
+dataDukhovny3 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_1209-1.1.14.screen.tab.txt",
+                            header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
+                            fill = TRUE, comment.char = "")
+dataDukhovny4 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_INDEX-1.1.14.index.tab.txt",
+                            header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
+                            fill = TRUE, comment.char = "")
+
+dataDukhovny <- dataDukhovny3 |> 
+  filter(IDENTIFIER_TYPE == "UNKNOWN") |> filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL))
+  # mutate(Gene = ifelse(grepl("^[A-Z0-9]+$", id), id, str_extract(id, "\\(([^)]+)\\)$")), 
+  #        .after = id) |> 
+  # mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
+  # arrange(neg.rank) |> 
+  # filter(!is.na(Gene))
 
 dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", 
                           sheet = "Ranking", col_names = FALSE, skip = 1)
