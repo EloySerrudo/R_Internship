@@ -7,10 +7,11 @@ library(gprofiler2)
 
 # Loading Datasets --------------------------------------------------------
 
-dataSavidis <- read_excel("1-s2.0-S2211124716307689-mmc8.xlsx", 
+dataSavidis <- read_excel("ZIKVData/1-s2.0-S2211124716307689-mmc8.xlsx", 
                           sheet = "Summary CME Compare")[-1,]
 
-dataLi <- read_excel("pnas.1900867116.sd01.xlsx", sheet = "zika_gw_5th_best")
+dataLi <- read_excel("ZIKVData/pnas.1900867116.sd01.xlsx", 
+                     sheet = "zika_gw_5th_best")
 colnames(dataLi) <- as.vector(dataLi[1,])
 dataLi <- dataLi[-1,]
 cols.num <- c("sgRNAs", "zika.init.5th", "p.bh")
@@ -19,24 +20,30 @@ dataLi <- dataLi[order(dataLi$p.bh),]
 
 dataDukhovny1 <- read.csv("ZIKVData/JVI.00211-19-sd003.csv", header=TRUE, 
                          sep = "\t", stringsAsFactors=FALSE)
-dataDukhovny3 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_1209-1.1.14.screen.tab.txt",
+dataDukhovny2 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_1209-1.1.14.screen.tab.txt",
                             header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
                             fill = TRUE, comment.char = "")
 dataDukhovny4 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_INDEX-1.1.14.index.tab.txt",
                             header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
                             fill = TRUE, comment.char = "")
 
-dataDukhovny <- dataDukhovny3 |> 
-  filter(IDENTIFIER_TYPE == "UNKNOWN") |> filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL))
+dataDukhovny <- dataDukhovny2 |> 
+  filter(!duplicated(OFFICIAL_SYMBOL)) |> 
+  filter(!grepl("^[0-9]+$", OFFICIAL_SYMBOL)) |> 
+  filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL)) |> 
+  arrange(desc(row_number()))
+
+
+
   # mutate(Gene = ifelse(grepl("^[A-Z0-9]+$", id), id, str_extract(id, "\\(([^)]+)\\)$")), 
   #        .after = id) |> 
   # mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
   # arrange(neg.rank) |> 
   # filter(!is.na(Gene))
 
-dataWangGSC <- read_excel("NIHMS1553325-supplement-2.xlsx", 
+dataWangGSC <- read_excel("ZIKVData/NIHMS1553325-supplement-2.xlsx", 
                           sheet = "Ranking", col_names = FALSE, skip = 1)
-dataWang293FT <- read_excel("NIHMS1553325-supplement-3.xlsx", 
+dataWang293FT <- read_excel("ZIKVData/NIHMS1553325-supplement-3.xlsx", 
                             sheet = "Sheet1", col_names = FALSE, skip = 2)
 colnames(dataWangGSC) <- as.vector(dataWangGSC[1,])
 colnames(dataWang293FT) <- as.vector(dataWang293FT[1,])
@@ -44,10 +51,10 @@ dataWangGSC <- dataWangGSC[-1,]
 dataWang293FT <- dataWang293FT[-1,]
 dataWang293FT[[1,1]] <- "MMGT1"
 
-dataRother <- read_excel("1-s2.0-S0168170221000459-mmc1.xlsx", 
+dataRother <- read_excel("ZIKVData/1-s2.0-S0168170221000459-mmc1.xlsx", 
                          sheet = "(B) Gene ranking")
 
-dataShue <- read_excel("jvi.00596-21-s0001.xls", sheet = "Genelist")
+dataShue <- read_excel("ZIKVData/jvi.00596-21-s0001.xls", sheet = "Genelist")
 cols.num <- c("deseq2.FC", "deseq2.pval", "mageck.rank.pos", "mageck.fdr.pos", 
               "mageck.rank.neg", "mageck.fdr.neg")
 dataShue[cols.num] <- sapply(dataShue[cols.num], as.numeric)
@@ -57,61 +64,72 @@ rm(cols.num)
 
 # Extracting Hits ---------------------------------------------------------
 
-
 Hits.Savidis <- sort(dataSavidis$`Zika CRISPR Screen Hits - Top 100`)
 Hits.Li <- sort(dataLi$Gene[1:500])
-Hits.Dukhovny <- sort(dataDukhovny[1:500, 2])
+Hits.Dukhovny <- sort(dataDukhovny$OFFICIAL_SYMBOL[1:500])
 Hits.WangGSC <- sort(dataWangGSC$`Gene Symbol`)
 Hits.Wang293FT <- sort(dataWang293FT$`Gene ID`)
 Hits.Rother <- sort(dataRother$`Gene symbol`)
 Hits.Shue <- sort(dataShue$genes[1:500])
 
-papers <- c("Wang.GSC", "Wang.293FT", "Shue", "Savidis", 
-            "Rother", "Li", "Dukhovny")
+papers <- c("Savidis", "Li", "Dukhovny", "Wang.GSC", 
+            "Wang.293FT", "Rother", "Shue")
 
-genes <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
-           Hits.WangGSC, Hits.Wang293FT)
-genes <- genes |> unique() |> sort()
+genes.HDF <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
+               Hits.WangGSC, Hits.Wang293FT)
+genes.HDF <- genes.HDF |> unique() |> sort()
 
-genes.DF <- data.frame(genes, 
-                       genes %in% Hits.WangGSC, 
-                       genes %in% Hits.Wang293FT, 
-                       genes %in% Hits.Shue, 
-                       genes %in% Hits.Savidis, 
-                       genes %in% Hits.Rother,
-                       genes %in% Hits.Li, 
-                       genes %in% Hits.Dukhovny,
-                       row.names = NULL)
-colnames(genes.DF)[-1] <- papers
+genes.HDF.DF <- data.frame(genes.HDF, 
+                       genes.HDF %in% Hits.Savidis, 
+                       genes.HDF %in% Hits.Li, 
+                       genes.HDF %in% Hits.Dukhovny,
+                       genes.HDF %in% Hits.WangGSC, 
+                       genes.HDF %in% Hits.Wang293FT, 
+                       genes.HDF %in% Hits.Rother,
+                       genes.HDF %in% Hits.Shue, 
+                       row.names = NULL) |> 
+                rowwise() |> 
+                mutate(Intersection = sum(c_across(2:8)))
+colnames(genes.HDF.DF)[c(-1, -9)] <- papers
 
 
 # Plotting the Upset plot -------------------------------------------------
 
 upset(
-  data = genes.DF,
+  data = genes.HDF.DF,
   intersect = papers,
   name = 'Papers', 
   width_ratio=0.2,
-  sort_intersections_by = 'degree',
+  sort_intersections_by = c('degree', 'cardinality'),
   sort_intersections = 'ascending',
-  sort_sets = FALSE
 ) +
   ggtitle("Genes from 6 studies")
 
+# All Genes ---------------------------------------------------------------
+
+gene.names <- c(dataSavidis$`Zika CRISPR Screen Hits - Top 100`, 
+           dataLi$Gene, 
+           dataDukhovny$OFFICIAL_SYMBOL, 
+           dataWangGSC$`Gene Symbol`, 
+           dataWang293FT$`Gene ID`, 
+           dataRother$`Gene symbol`, 
+           dataShue$genes) |> unique() |> sort()
+
+genes <- data.frame(Symbol = gene.names, HDF = FALSE) |> 
+  mutate(HDF = ifelse(Symbol %in% genes.HDF, TRUE, FALSE))
 
 # Selecting Groups --------------------------------------------------------
 
-genes.DF.int <- genes.DF |> 
-  rowwise() |>
-  mutate(Intersection = sum(c_across(2:8))) |> 
-  filter(Intersection > 1)
+GS3.of.7 <- genes.HDF.DF |> 
+  filter(Intersection >= 3)
+GS2.of.7 <- genes.HDF.DF |> 
+  filter(Intersection == 2)
+GS1.of.7 <- genes.HDF.DF |> 
+  filter(Intersection == 1)
 
-genes.int <- genes.DF.int$genes
 
-genes.DF.int |> 
-  filter(Li & Wang.293FT & Rother & Savidis & Shue & Wang.GSC) |> 
-  select(genes) |> 
-  unlist(use.names = FALSE)
+
+
 
 # Gen set enrichment analysis ---------------------------------------------
 
@@ -137,9 +155,8 @@ gseaUp.mod$geneID = gsub(",", "/", gseaUp.mod$geneID)
 # write_xlsx(gseaUp.mod, "ZIKVData/GSEAup_Zika.xlsx")
 
 
-
-
-
+dataCombined <- read.csv("ZIKVData/combinedFinal.csv", header=TRUE, 
+                         stringsAsFactors=FALSE)
 
 
 
