@@ -26,7 +26,11 @@ dataDukhovny2 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_1209-1.1.14.screen.tab
 dataDukhovny4 <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_INDEX-1.1.14.index.tab.txt",
                             header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
                             fill = TRUE, comment.char = "")
+dataDukhovny <- dataDukhovny2 |> 
+  filter(!(grepl("^[0-9]+$", OFFICIAL_SYMBOL))) |> 
+  filter(IDENTIFIER_TYPE == "UNKNOWN") |> filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL))
 
+<<<<<<< Updated upstream
 dataDukhovny <- dataDukhovny2 |> 
   filter(!duplicated(OFFICIAL_SYMBOL)) |> 
   filter(!grepl("^[0-9]+$", OFFICIAL_SYMBOL)) |> 
@@ -35,6 +39,11 @@ dataDukhovny <- dataDukhovny2 |>
 
 
 
+=======
+
+dataDukhovny3 <- dataDukhovny2 |> 
+  filter(IDENTIFIER_TYPE == "UNKNOWN") |> filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL))
+>>>>>>> Stashed changes
   # mutate(Gene = ifelse(grepl("^[A-Z0-9]+$", id), id, str_extract(id, "\\(([^)]+)\\)$")), 
   #        .after = id) |> 
   # mutate(Gene = gsub("\\(|\\)", "", Gene)) |> 
