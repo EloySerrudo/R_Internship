@@ -26,10 +26,10 @@ library(biomaRt)
 
 ensembl <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
 
-chr1_genes <- getBM(attributes=c('ensembl_gene_id', 
-                                 'hgnc_symbol', 
-                                 'external_gene_name', 
-                                 'external_synonym'), mart = ensembl)
+ensembl_genes <- getBM(attributes=c('ensembl_gene_id', 
+                                    'hgnc_symbol', 
+                                    'external_gene_name', 
+                                    'external_synonym'), mart = ensembl)
 
 head(chr1_genes)
 
