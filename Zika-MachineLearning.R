@@ -1,15 +1,24 @@
+# Install -----------------------------------------------------------------
+
+
 if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
 BiocManager::install("org.Hs.eg.db", version = "3.16")
 
-library(tidyverse)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("biomaRt", version = "3.16")
+
+
+# Machine Learning --------------------------------------------------------
+
+
 library(data.table)
-library(gprofiler2)
+# library(gprofiler2)
 
-library(org.Hs.eg.db)
 
-dataCombined <- fread("ZIKVData/dataReducedReduced.csv", sep=',', 
+dataCombined <- fread("ZIKVData/combinedFinal.csv", sep=',', 
                       header = TRUE, fill = TRUE)
 
 dataCombined[17572:17583, 1:10]
@@ -17,53 +26,20 @@ dataCombined[17572:17583, 1:10]
 typeof(dataCombined)
 class(dataCombined)
 
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("biomaRt", version = "3.16")
+# genes.HDF <- genes.HDF.DF |> dplyr::select(genes, ensembl.ids)
 
+genes.input <- dataCombined |> filter(Ensembl_ID %in% genes.HDF.DF$ensembl.ids)
+z.score <- as.data.frame(scale(genes.input[,-1])) |> 
+  mutate(Ensembl_ID = genes.input$Ensembl_ID, .before = 1)
 
-library(biomaRt)
+std.dev <- apply(z.score[,-1], MARGIN = 2, FUN = sd)
+mean.dt <- apply(z.score[,-1], MARGIN = 2, FUN = mean)
+coef.var <- std.dev / mean.dt
+coef.var[1:20]
 
-ensembl <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+coef.var.rank <- base::rank(1/coef.var)
+plot(coef.var.rank, coef.var)
 
-ensembl_genes <- getBM(attributes=c('ensembl_gene_id', 
-                                    'hgnc_symbol', 
-                                    'external_gene_name', 
-                                    'external_synonym'), mart = ensembl)
+coef.var.rank[1:10]
 
-head(chr1_genes)
-
-listAttributes(ensembl)[1:38,1:2]
-
-# Not important -----------------------------------------------------------
-
-
-
-simbolo_hgnc <- mapIds(org.Hs.eg.db, 
-                       keys = descripcion_del_gen, 
-                       column = "SYMBOL", 
-                       keytype = "GENENAME")
-
-keytypes(org.Hs.eg.db)
-
-ensembl_ids <- mapIds(org.Hs.eg.db, 
-                      keys = genes.HDF, 
-                      column = "ENSEMBL", 
-                      keytype = "SYMBOL")
-
-ens.Savidis <- mapIds(org.Hs.eg.db, 
-                      keys = Hits.Savidis, 
-                      column = "ENSEMBL", 
-                      keytype = "ALIAS")
-
-
-unique(ensembl_ids)
-
-gconvert(
-  query = genes.HDF,
-  organism = "hsapiens",
-  target = "ENSG",
-  numeric_ns = "",
-  mthreshold = Inf,
-  filter_na = TRUE
-)
+write_csv(genes.input, "ZIKVData/genesInput.csv")
