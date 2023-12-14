@@ -83,6 +83,8 @@ ensembl_genes <- getBM(attributes=c('ensembl_gene_id',
                                     'external_gene_name', 
                                     'external_synonym'), mart = ensembl)
 
+# write_csv(ensembl_genes, "ZIKVData/ensembl_genes.csv")
+
 ensembl_ids <- mapIds(org.Hs.eg.db, 
                       keys = genes.HDF, 
                       column = "ENSEMBL", 
@@ -100,7 +102,7 @@ genes.HDF.DF$ensembl.ids[IDX] <- ensembl_genes$ensembl_gene_id[match(genes.HDF[I
 IDX <- is.na(genes.HDF.DF$ensembl.ids)
 genes.HDF.DF$ensembl.ids[IDX] <- c("ENSG00000264066", NA, "ENSG00000271043", "ENSG00000213029")
 
-rm(ensembl, ensembl_genes, ensembl_ids, IDX)
+rm(ensembl, ensembl_genes, ensembl_ids, IDX, genes.HDF)
 
 genes.HDF.DF <- genes.HDF.DF |> 
   filter(!(is.na(ensembl.ids))) |> 
