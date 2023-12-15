@@ -11,10 +11,9 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("biomaRt", version = "3.16")
 
 
-# Machine Learning --------------------------------------------------------
 
+# Data combined -----------------------------------------------------------
 
-library(data.table)
 # library(gprofiler2)
 
 
@@ -28,18 +27,31 @@ class(dataCombined)
 
 # genes.HDF <- genes.HDF.DF |> dplyr::select(genes, ensembl.ids)
 
-genes.input <- dataCombined |> filter(Ensembl_ID %in% genes.HDF.DF$ensembl.ids)
-z.score <- as.data.frame(scale(genes.input[,-1])) |> 
-  mutate(Ensembl_ID = genes.input$Ensembl_ID, .before = 1)
+# Machine Learning --------------------------------------------------------
 
-std.dev <- apply(z.score[,-1], MARGIN = 2, FUN = sd)
-mean.dt <- apply(z.score[,-1], MARGIN = 2, FUN = mean)
-coef.var <- std.dev / mean.dt
-coef.var[1:20]
+library(data.table)
 
-coef.var.rank <- base::rank(1/coef.var)
-plot(coef.var.rank, coef.var)
+genes.input <- fread("ZIKVData/genesInput.csv", sep = ',', 
+                     header = TRUE, fill = TRUE)
+names <- genes.input$Ensembl_ID
 
-coef.var.rank[1:10]
+genes.input <- genes.input |> dplyr::select(-1)
 
-write_csv(genes.input, "ZIKVData/genesInput.csv")
+genes.input <- as.data.frame(genes.input, row.names = names) |> 
+  dplyr::select(-where(~all(. == 0)))
+
+z.score <- as.data.frame(scale(genes.input), row.names = names)
+
+coef.var <- data.frame(
+  sd = apply(z.score, MARGIN = 2, FUN = sd),
+  mean = apply(z.score, MARGIN = 2, FUN = mean)) |> 
+  mutate(cv = sd / mean)
+
+hist(coef.var$cv, breaks = 1)
+
+sum(coef.var$cv < 0.01)
+
+variance.rank <- rank(1/coef.var$sd)
+plot(variance.rank, coef.var$cv, xlab = "Genes", ylab = "Variance")
+
+sum(coef.var$sd > 0.01)
