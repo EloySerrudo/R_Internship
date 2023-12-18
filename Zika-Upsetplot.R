@@ -2,6 +2,8 @@ library(tidyverse)
 library(readxl)
 library(writexl)
 library(ComplexUpset)
+library(biomaRt)
+library(org.Hs.eg.db)
 #library(gprofiler2)
 
 
@@ -24,9 +26,9 @@ dataDukhovny <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_1209-1.1.14.screen.tab.
   filter(!duplicated(OFFICIAL_SYMBOL)) |> 
   filter(IDENTIFIER_TYPE != "UNKNOWN") |> 
   arrange(desc(row_number()))
-indexDukhovny <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_INDEX-1.1.14.index.tab.txt",
-                            header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
-                            fill = TRUE, comment.char = "")
+#indexDukhovny <- read.table("ZIKVData/BIOGRID-ORCS-SCREEN_INDEX-1.1.14.index.tab.txt",
+#                            header = TRUE, sep = "\t", quote = "", strip.white = TRUE,
+#                            fill = TRUE, comment.char = "")
 
 # filter(!grepl("^[0-9]+$", OFFICIAL_SYMBOL)) |> 
 # filter(grepl("^[A-Z0-9]+$", OFFICIAL_SYMBOL)) |> 
@@ -60,84 +62,76 @@ rm(cols.num)
 
 # Extracting Hits ---------------------------------------------------------
 
-sym.Savidis <- sort(dataSavidis$`Zika CRISPR Screen Hits - Top 100`)
-sym.Li <- sort(dataLi$Gene[1:500])
-sym.Dukhovny <- sort(dataDukhovny$OFFICIAL_SYMBOL[1:500])
-sym.WangGSC <- sort(dataWangGSC$`Gene Symbol`)
-sym.Wang293FT <- sort(dataWang293FT$`Gene ID`)
-sym.Rother <- sort(dataRother$`Gene symbol`)
-sym.Shue <- sort(dataShue$genes[1:500])
+Hits.Savidis <- sort(dataSavidis$`Zika CRISPR Screen Hits - Top 100`)
+Hits.Li <- sort(dataLi$Gene[1:500])
+Hits.Dukhovny <- sort(dataDukhovny$OFFICIAL_SYMBOL[1:500])
+Hits.WangGSC <- sort(dataWangGSC$`Gene Symbol`)
+Hits.Wang293FT <- sort(dataWang293FT$`Gene ID`)
+Hits.Rother <- sort(dataRother$`Gene symbol`)
+Hits.Shue <- sort(dataShue$genes[1:500])
 
-papers <- c("Savidis", "Li", "Dukhovny", "Wang.GSC", 
-            "Wang.293FT", "Rother", "Shue")
-
-ids.Savidis <- mapIds(org.Hs.eg.db, 
-                      keys = sym.Savidis, 
-                      column = "ENSEMBL", 
-                      keytype = "ALIAS")
-
-ids.Savidis[duplicated(ids.Savidis)]
-aux <- sym.Savidis[duplicated(ids.Savidis)]
-
-mapIds(org.Hs.eg.db, keys = "CXORF22", column = "ENSEMBL", keytype = "ENTREZID")
-
-
-
-gconvert(aux, organism = "hsapiens", target="AFFY_HG_U133_PLUS_2")
-
-
+papers <- c("Savidis", "Li", "Dukhovny", "WangGSC", 
+            "Wang293FT", "Rother", "Shue")
 
 genes.HDF <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
                Hits.WangGSC, Hits.Wang293FT)
 genes.HDF <- genes.HDF |> unique() |> sort()
+
+ensembl <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+ensembl_genes <- getBM(attributes=c('ensembl_gene_id', 
+                                    'hgnc_symbol', 
+                                    'external_gene_name', 
+                                    'external_synonym'), mart = ensembl)
+
+# write_csv(ensembl_genes, "ZIKVData/ensembl_genes.csv")
 
 ensembl_ids <- mapIds(org.Hs.eg.db, 
                       keys = genes.HDF, 
                       column = "ENSEMBL", 
                       keytype = "ALIAS")
 
-genes.HDF[ensembl_ids == "ENSG00000165164"]
+genes.HDF.DF <- tibble(
+  genes = genes.HDF, 
+  ensembl.ids = ensembl_ids
+)
 
+IDX <- is.na(genes.HDF.DF$ensembl.ids)
+genes.HDF.DF$ensembl.ids[IDX] <- ensembl_genes$ensembl_gene_id[match(toupper(genes.HDF[IDX]), ensembl_genes$external_synonym)]
+IDX <- is.na(genes.HDF.DF$ensembl.ids)
+genes.HDF.DF$ensembl.ids[IDX] <- ensembl_genes$ensembl_gene_id[match(genes.HDF[IDX], ensembl_genes$external_gene_name)]
+IDX <- is.na(genes.HDF.DF$ensembl.ids)
+genes.HDF.DF$ensembl.ids[IDX] <- c("ENSG00000264066", NA, "ENSG00000271043", "ENSG00000213029")
 
+rm(ensembl, ensembl_genes, ensembl_ids, IDX, genes.HDF)
 
-
-ens.Savidis <- mapIds(org.Hs.eg.db, keys = Hits.Savidis, column = "ENSEMBL", keytype = "SYMBOL")
-ens.Li <- mapIds(org.Hs.eg.db, keys = Hits.Li, column = "ENSEMBL", keytype = "SYMBOL")
-ens.Dukhovny <- mapIds(org.Hs.eg.db, keys = Hits.Dukhovny, column = "ENSEMBL", keytype = "SYMBOL")
-ens.WangGSC <- mapIds(org.Hs.eg.db, keys = Hits.WangGSC, column = "ENSEMBL", keytype = "SYMBOL")
-ens.Wang293FT <- mapIds(org.Hs.eg.db, keys = Hits.Wang293FT, column = "ENSEMBL", keytype = "SYMBOL")
-ens.Rother <- mapIds(org.Hs.eg.db, keys = Hits.Rother, column = "ENSEMBL", keytype = "SYMBOL")
-ens.Shue <- mapIds(org.Hs.eg.db, keys = Hits.Shue, column = "ENSEMBL", keytype = "SYMBOL")
-
-ens.Savidis[!(ens.Savidis %in% unique(ens.Savidis))]
-
-ens.Savidis[duplicated(ens.Savidis)]
-Hits.Savidis[duplicated(ens.Savidis)]
-
-
-genes.HDF <- c(Hits.Li, Hits.Rother, Hits.Dukhovny, Hits.Savidis, Hits.Shue, 
-               Hits.WangGSC, Hits.Wang293FT)
-genes.HDF <- genes.HDF |> unique() |> sort()
-
-genes.HDF.DF <- data.frame(genes.HDF, 
-                           genes.HDF %in% Hits.Savidis, 
-                           genes.HDF %in% Hits.Li, 
-                           genes.HDF %in% Hits.Dukhovny,
-                           genes.HDF %in% Hits.WangGSC, 
-                           genes.HDF %in% Hits.Wang293FT, 
-                           genes.HDF %in% Hits.Rother,
-                           genes.HDF %in% Hits.Shue, 
-                           row.names = NULL) |> 
+genes.HDF.DF <- genes.HDF.DF |> 
+  filter(!(is.na(ensembl.ids))) |> 
+  mutate(Savidis = genes %in% Hits.Savidis, 
+         Li = genes %in% Hits.Li, 
+         Dukhovny = genes %in% Hits.Dukhovny, 
+         WangGSC = genes %in% Hits.WangGSC, 
+         Wang293FT = genes %in% Hits.Wang293FT, 
+         Rother = genes %in% Hits.Rother, 
+         Shue = genes %in% Hits.Shue) |> 
   rowwise() |> 
-  mutate(Intersection = sum(c_across(2:8)))
-colnames(genes.HDF.DF)[c(-1, -9)] <- papers
+  mutate(Intersection = sum(c_across(3:9)))
 
-length(unique(toupper(genes.HDF)))
+# genes.HDF.DF$ensembl.ids[duplicated(genes.HDF.DF$ensembl.ids)]
+
+genes.upset <- genes.HDF.DF |> 
+  dplyr::select(ensembl.ids:Intersection) |> 
+  group_by(ensembl.ids) |> 
+  summarise_all(sum)
+
+genes.upset[2:8] <- genes.upset  |> 
+  dplyr::select(Savidis:Shue) |> 
+  mutate_all(~ . == 1)
+
 
 # Plotting the Upset plot -------------------------------------------------
 
 upset(
-  data = genes.HDF.DF,
+  data = genes.upset,
   intersect = papers,
   name = 'Papers', 
   width_ratio=0.2,
@@ -161,16 +155,12 @@ genes <- data.frame(Symbol = gene.names, HDF = FALSE) |>
 
 # Selecting Groups --------------------------------------------------------
 
-GS3.of.7 <- genes.HDF.DF |> 
-  filter(Intersection >= 3)
-GS2.of.7 <- genes.HDF.DF |> 
-  filter(Intersection == 2)
-GS1.of.7 <- genes.HDF.DF |> 
-  filter(Intersection == 1)
-
-
-
-
+GS3.of.7 <- (genes.upset |> 
+  filter(Intersection >= 3))$ensembl.ids
+GS2.of.7 <- (genes.upset |> 
+  filter(Intersection == 2))$ensembl.ids
+GS1.of.7 <- (genes.upset |> 
+  filter(Intersection == 1))$ensembl.ids
 
 # Gen set enrichment analysis ---------------------------------------------
 
