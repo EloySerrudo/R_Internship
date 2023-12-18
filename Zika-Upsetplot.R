@@ -155,16 +155,12 @@ genes <- data.frame(Symbol = gene.names, HDF = FALSE) |>
 
 # Selecting Groups --------------------------------------------------------
 
-GS3.of.7 <- genes.HDF.DF |> 
-  filter(Intersection >= 3)
-GS2.of.7 <- genes.HDF.DF |> 
-  filter(Intersection == 2)
-GS1.of.7 <- genes.HDF.DF |> 
-  filter(Intersection == 1)
-
-
-
-
+GS3.of.7 <- (genes.upset |> 
+  filter(Intersection >= 3))$ensembl.ids
+GS2.of.7 <- (genes.upset |> 
+  filter(Intersection == 2))$ensembl.ids
+GS1.of.7 <- (genes.upset |> 
+  filter(Intersection == 1))$ensembl.ids
 
 # Gen set enrichment analysis ---------------------------------------------
 
