@@ -1,14 +1,14 @@
 # Install -----------------------------------------------------------------
 
 
-# if (!require("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
-# 
-# BiocManager::install("org.Hs.eg.db", version = "3.16")
-# 
-# if (!requireNamespace("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
-# BiocManager::install("biomaRt", version = "3.16")
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("org.Hs.eg.db", version = "3.16")
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("biomaRt", version = "3.16")
 
 
 
@@ -32,13 +32,13 @@ class(dataCombined)
 library(data.table)
 
 genes.input <- fread("ZIKVData/genesInput.csv", sep = ',', header = TRUE) |> 
-  as.data.frame()
+  as.data.frame(row.names = dplyr::select(Ensembl_ID))
 
 names <- genes.input$Ensembl_ID
 
 genes.input <- genes.input |> dplyr::select(-1)
 
-genes.input <- as.data.frame(genes.input, row.names = names) |> 
+genes.input <- genes.input |> 
   dplyr::select(-where(~all(. == 0)))
 
 z.score <- as.data.frame(scale(genes.input), row.names = names)
@@ -58,26 +58,17 @@ plot(features.rank,
 
 sum(coef.var$cv > 5e16)
 
-features.sel <- which(coef.var$cv > quantile(coef.var$cv,0.99)) # cv > 0.01
+features.sel <- which(coef.var$cv>quantile(coef.var$cv,0.99)) # cv > 0.01
 
 genes.fil.1 <- z.score |> dplyr::select(all_of(features.sel))
 
 corr.matrix <- cor(genes.fil.1)
 
-corr.matrix <- read.csv("ZIKVData/corr_matrix.csv") #*****#
-rownames(corr.matrix) <- colnames(corr.matrix) #*****#
-corr.matrix <- as.matrix(corr.matrix) #*****#
-
-correlation.sel <- which(abs(corr.matrix) > 0.7, arr.ind = TRUE)
-
-features.pairs.sel <- cbind(rownames(corr.matrix)[correlation.sel[, 1]],
-                            colnames(corr.matrix)[correlation.sel[, 2]])
-
 ### Set up data structure and filter highly correlated columns
 result <- vector(mode = "list", length = 605)
-for(i in 1:605) {
+for ( i in 1:605) {
   result[[i]] <- {
-    if (i == nrow(corr.matrix)) {
+    if ( i == nrow(corr.matrix)) {
       which(abs(unlist(corr.matrix[i, 1:i])) > 0.7)
     } else {
       which(abs(c(unlist(corr.matrix[i ,1:i]), unlist(corr.matrix[(i+1):nrow(corr.matrix), i]))) > 0.7)
@@ -107,24 +98,14 @@ while(maximum > 1) {
   result[[index]] <- c(0) # Elimina la columna con más correlaciones de la tabla
 }
 ### Calculate columns to be removed
-pearson.sel <- which(unlist(result) == 0) # index shift to fit original data
+finalFeatures <- colnames(corr.matrix)[which(unlist(result) == 0)]
 
-rm(i, index, j, k, lengths, longest, maximum, result)
+rm(coef.var, corr.list, corr.matrix, z.score, result, features.rank, 
+   features.sel, i, index, j, k, lengths, longest, maximum, genes.input,
+   genes.fil.1)
 
-genes.fil.2 <- genes.fil.1 |> dplyr::select(all_of(result))
 
-rm(coef.var, corr.matrix, correlation.sel, features.pairs.sel, genes.fil.1,
-   genes.input, z.score, variance.rank, variance.sel)
 
-features <- colnames(corr.matrix)[pearson.sel]
 
-# Machine Learning --------------------------------------------------------
 
-gene.data <- fread("ZIKVData/combinedFinal.csv") %>% as.data.frame
-gene.data <- gene.data |> dplyr::select(all_of(result))
-
-GS1.of.7 <- GS1.of.7[GS1.of.7 %in% names]
-GS2.of.7 <- GS2.of.7[GS2.of.7 %in% names]
-GS3.of.7 <- GS3.of.7[GS3.of.7 %in% names]
-
-write.csv(features, file = "ZIKVData/columnas.csv", row.names=F)
+# write_csv(gene.data, "ZIKVData/finalGeneInput.csv")
